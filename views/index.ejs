@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link rel="icon" href="/favicon.ico">
+
+    <% var entryPoint = 'src/client/main.ts'; %>
+
+    <% if (isDev) { %>
+
+      <script type="module" src="/@vite/client"></script>
+      <script type="module" src="/<%- entryPoint %>"></script>
+
+    <% } else if (assetManifest) { %>
+
+      <% var entryManifest = assetManifest[entryPoint] %>
+      
+      <% if (entryManifest.css) { %> 
+        <% entryManifest.css.forEach(function (cssAsset) { %> 
+          <link rel="stylesheet" href="/<%- cssAsset %>" />
+        <% }); %>
+      <% } %>
+      
+      <script type="module" src="/<%- entryManifest.file %>"></script>
+
+    <% } %>
+    
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,300;0,500;0,900;1,300&display=swap" rel="stylesheet">
+
+    <title>SweeperChess</title>
+  </head>
+  <body>
+    <noscript>
+      <strong>Please enable JavaScript to continue.</strong>
+    </noscript>
+	
+    <div id="app"></div>
+  </body>
+</html>
