@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import { reactive } from 'vue'
-import { BoardCoords } from '../types/game'
+import { IBoardCoords } from '../types/game'
 
 import { PieceType, PieceColor, SlideDirection } from './enums'
 import { Move } from './utils'
@@ -9,7 +9,7 @@ export class Piece {
     public type: PieceType
     public color: PieceColor
 
-    public coords: BoardCoords
+    public coords: IBoardCoords
 
     public guid: string
 
@@ -24,7 +24,7 @@ export class Piece {
         this.inCheck = inCheck
     }
 
-    static SlideDirections: Record<SlideDirection, BoardCoords> = {
+    static SlideDirections: Record<SlideDirection, IBoardCoords> = {
         [SlideDirection.North]: {rank: 1, file: 0},
         [SlideDirection.South]: {rank: -1, file: 0},
         [SlideDirection.West]: {rank: 0, file: -1},

@@ -2,15 +2,25 @@ import { Piece } from './Piece.class'
 import { PieceColor, PieceType, SlideDirection } from './enums'
 
 import { Move, Coords } from './utils'
-import { reactive } from 'vue'
-import { BoardCoords, CastleState, IBoardPrecompData } from '../types/game'
+import { IBoardCoords, ICastleState, IBoardPrecompData, IGameContext } from '../types/game'
 
-export class Game {
-    public pieces: Piece[] = reactive([])
-
+export class Game implements IGameContext {
+    // IGameContext Implementation:
+    public pieces: Piece[] = []
     public colorToMove: PieceColor = PieceColor.White
+    public boardWidth: number
+    public boardHeight: number
+    public boardLayout: number[][]
+    public legalMoves: Move[] = []
 
-    public castleState: CastleState = {
+    // Private members:
+    private board: Piece[][] = []
+    private enPassantSquare: IBoardCoords | null = null
+    private opponentMoves: Move[] = []
+    private attackedSquares: IBoardCoords[] = []
+    private kingAttacks: IBoardCoords[][] = []
+    private numSquaresToEdge: IBoardPrecompData[][] = []
+    private castleState: ICastleState = {
         [PieceColor.White]: [
             SlideDirection.East,
             SlideDirection.West,
@@ -21,28 +31,37 @@ export class Game {
         ]
     }
 
-    public enPassantSquare: BoardCoords | null = null
-
-    public board: Piece[][] = reactive([])
-
-    public boardWidth: number
-    public boardHeight: number
-    public boardLayout: number[]
-
-    public legalMoves: Move[] = []
-    public opponentMoves: Move[] = []
-    public attackedSquares: BoardCoords[] = []
-    public kingAttacks: BoardCoords[][] = []
-
-    numSquaresToEdge: IBoardPrecompData[][] = []
-
-    constructor(boardWidth: number, boardHeight: number, boardLayout: number[] = []) {
+    constructor(boardWidth: number, boardHeight: number, boardLayout: number[][] = []) {
         this.boardWidth = boardWidth
         this.boardHeight = boardHeight
 
         this.boardLayout = boardLayout
         
         this.precomputeMoveData()
+    }
+
+    //#region PUBLIC METHODS
+    ////////////////////////
+
+    public tryMovePiece(startSquare: IBoardCoords, targetSquare: IBoardCoords): boolean {
+        if (startSquare == targetSquare) return false
+
+        const requestedMove = this.legalMoves.find(move => {
+            return Coords.Equal(move.startSquare, startSquare) && Coords.Equal(move.targetSquare, targetSquare)
+        })
+        
+        if (!requestedMove) {
+            // Move illegal
+            return false
+        }
+
+        this.executeMove(requestedMove)
+        
+        this.colorToMove = Game.invertColor(this.colorToMove)
+
+        this.regen()
+
+        return true
     }
 
     public loadFEN(fen: string) {
@@ -71,26 +90,35 @@ export class Game {
                     rank
                 }
 
-                this.pieces.push(reactive(new Piece(
+                this.pieces.push(new Piece(
                     Piece.charToPieceType(char),
                     char == char.toUpperCase() ? PieceColor.White : PieceColor.Black,
                     coords
-                )))
+                ))
                 file++
             } else {
                 file += number
             }
         }
 
+        this.regen()
+    }
+    
+    //#endregion
+
+    //#region PRIVATE METHODS
+    /////////////////////////
+
+    private regen() {
         this.generateBoard()
 
-        this.generateMoves(this.opponentMoves, Game.invertColor(this.colorToMove))
+        this.opponentMoves = this.generateMoves(Game.invertColor(this.colorToMove))
         this.checkCheck()
-        this.generateMoves(this.legalMoves, this.colorToMove)
+        this.legalMoves = this.generateMoves(this.colorToMove)
     }
 
-    public generateBoard() {
-        const result = Array.from({length: 8}, e => Array(8).fill(reactive(new Piece())))
+    private generateBoard() {
+        const result = Array.from({length: 8}, e => Array(8).fill(new Piece()))
 
         this.pieces.forEach(piece => {
             if (!result[piece.coords.rank]) result[piece.coords.rank] = []
@@ -101,7 +129,7 @@ export class Game {
         this.board = result
     }
 
-    precomputeMoveData() {
+    private precomputeMoveData() {
         this.numSquaresToEdge = []
 
         for (let rank = 0; rank < this.boardWidth; rank++) {
@@ -126,37 +154,16 @@ export class Game {
         }
     }
 
-    public tryMovePiece(startSquare: BoardCoords, targetSquare: BoardCoords) {
-        if (startSquare == targetSquare) return
-
-        const requestedMove = this.legalMoves.find(move => {
-            return Coords.Equal(move.startSquare, startSquare) && Coords.Equal(move.targetSquare, targetSquare)
-        })
-        
-        if (!requestedMove) {
-            // Move illegal
-            return
-        }
-
-        this.executeMove(requestedMove)
-        
-        this.colorToMove = Game.invertColor(this.colorToMove)
-        this.generateBoard()
-        this.generateMoves(this.opponentMoves, Game.invertColor(this.colorToMove))
-        this.checkCheck()
-        this.generateMoves(this.legalMoves, this.colorToMove)
-    }
-
     private executeMove(move: Move) {
         const piece = this.board[move.startSquare.rank][move.startSquare.file]
         
         if (piece.color != this.colorToMove) return
         
-        // Separated so reactive rules are obeyed
-        piece.coords.rank = move.targetSquare.rank
-        piece.coords.file = move.targetSquare.file
+        piece.coords = move.targetSquare
         
         this.enPassantSquare = null
+
+        console.log(move)
 
         // Take piece
         if (move.targetPieceCoords != null) {
@@ -175,9 +182,9 @@ export class Game {
         if (move.consequence) move.consequence(this, piece)
     }
 
-    private generateMoves(moves: Move[], color: PieceColor) {
+    private generateMoves(color: PieceColor): Move[] {
         // clear moves
-        moves.length = 0
+        const moves: Move[] = []
 
         this.pieces.forEach(piece => {
             if (piece.color == color) {
@@ -194,14 +201,19 @@ export class Game {
                 }
             }
         })
+
+        return moves
     }
     
-    private generateSlidingMoves(moves: Move[], color: PieceColor, startSquare: BoardCoords, piece: Piece) {
+    private generateSlidingMoves(moves: Move[], color: PieceColor, startSquare: IBoardCoords, piece: Piece) {
         const directions = piece.getSlidingDirections()
         const moveDistance = piece.getMoveDistanceRange(this.boardHeight)
 
         directions.forEach(direction => {
             const maxMoveDistance = Math.min(moveDistance.max, this.numSquaresToEdge[startSquare.rank][startSquare.file][direction])
+
+            const crossedSquares = []
+            let isKingAttack = false
 
             for (let n = moveDistance.min; n <= maxMoveDistance; n++) {
                 const delta = Coords.Scale(Piece.SlideDirections[direction], n)
@@ -229,20 +241,29 @@ export class Game {
                         }
                     }
                 }
+                
+                if (piece.type == PieceType.King) {
+                    isKingAttack = true
+                }
 
                 const isTake = pieceOnTargetSquare.color == Game.invertColor(color)
                 
                 moves.push(new Move(startSquare, targetSquare, isTake ? targetSquare : null, null, consequence))
+                crossedSquares.push(targetSquare)
 
                 // Can't move further after a take
                 if (isTake) {
                     break
                 }
             }
+
+            if (isKingAttack && this.colorToMove == Game.invertColor(piece.color)) {
+                this.kingAttacks.push(crossedSquares)
+            }
         })
     }
 
-    private generatePawnMoves(moves: Move[], color: PieceColor, startSquare: BoardCoords, piece: Piece) {
+    private generatePawnMoves(moves: Move[], color: PieceColor, startSquare: IBoardCoords, piece: Piece) {
         const direction = color == PieceColor.White ? SlideDirection.North : SlideDirection.South
 
         const moveDistance = piece.getMoveDistanceRange(this.boardHeight)
@@ -301,7 +322,7 @@ export class Game {
         })
     }
 
-    private generateKnightMoves(moves: Move[], color: PieceColor, startSquare: BoardCoords) {
+    private generateKnightMoves(moves: Move[], color: PieceColor, startSquare: IBoardCoords) {
         Piece.KnightDirections.forEach(direction => {
             const targetSquare = Coords.Add(startSquare, direction)
 
@@ -315,7 +336,7 @@ export class Game {
         })
     }
 
-    private generateCastlingMoves(moves: Move[], color: PieceColor, startSquare: BoardCoords) {
+    private generateCastlingMoves(moves: Move[], color: PieceColor, startSquare: IBoardCoords) {
         if (color == PieceColor.None) return
 
         this.castleState[color].forEach(direction => {
@@ -357,7 +378,7 @@ export class Game {
         })
     }
 
-    private isSquareAttacked(testSquare: BoardCoords): boolean {
+    private isSquareAttacked(testSquare: IBoardCoords): boolean {
         return !!this.attackedSquares.find(square => Coords.Equal(testSquare, square))
     }
     
@@ -378,7 +399,7 @@ export class Game {
         }
         
         this.kingAttacks = kingAttackMoves.map(kingAttackMove => {
-            const path: BoardCoords[] = []
+            const path: IBoardCoords[] = []
 
             this.opponentMoves.forEach(opponentMove => {
                 if (Coords.Equal(opponentMove.startSquare, kingAttackMove.startSquare)) {
@@ -412,18 +433,18 @@ export class Game {
         return true
     }
 
-    public coordsToIndex(coords: BoardCoords): number {
+    private coordsToIndex(coords: IBoardCoords): number {
         return (coords.rank * this.boardWidth) + coords.file
     }
 
-    public indexToCoords(index: number): BoardCoords {
+    private indexToCoords(index: number): IBoardCoords {
         return {
             file: index % this.boardWidth,
             rank: Math.floor(index / this.boardWidth)
         }
     }
 
-    public doesTileExist(square: BoardCoords) {
+    private doesTileExist(square: IBoardCoords) {
         return !(
             square.file > this.boardWidth - 1 ||
             square.rank > this.boardHeight - 1 ||
@@ -431,6 +452,11 @@ export class Game {
             square.rank < 0
         )
     }
+
+    //#endregion
+
+    //#region STATIC METHODS
+    ////////////////////////
 
     static getSizeOfFEN(fen: string): {width: number, height: number} {
         let width = 0
@@ -454,4 +480,6 @@ export class Game {
     static invertColor(color: PieceColor): PieceColor {
         return color == PieceColor.White ? PieceColor.Black : PieceColor.White
     }
+
+    //#endregion
 }

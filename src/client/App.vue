@@ -2,21 +2,14 @@
     <h1>SweeperChess</h1>
 
     <Board
-        :boardLayout="boardLayout"
-        :boardWidth="boardWidth"
-        :boardHeight="boardHeight"
-        :pieces="pieces"
-        :legal-moves="legalMoves"
-        @move-piece="movePiece"
+        :game="game"
     />
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, readonly } from 'vue'
+import { defineComponent, ref, readonly, reactive } from 'vue'
 
 import { Game } from '../game/Game.class'
-import { Move } from '../game/utils'
-import { BoardCoords } from '../types/game'
 
 import Board from './components/Board.vue'
 
@@ -27,25 +20,12 @@ export default defineComponent({
         Board
     },
     setup () {
-        const boardHeight = ref(8)
-        const boardWidth = ref(8)
-
-        const game = new Game(boardHeight.value, boardWidth.value)
+        const game = new Game(8, 8)
 
         game.loadFEN(startingFEN)
 
-        const movePiece = (startSquare: BoardCoords, targetSquare: BoardCoords) => {
-            game.tryMovePiece(startSquare, targetSquare)
-        }
-
         return {
-            pieces: readonly(game.pieces),
-            movePiece,
-            game,
-            boardLayout: readonly(game.boardLayout),
-            boardHeight,
-            boardWidth,
-            legalMoves: readonly(game.legalMoves),
+            game: reactive(game)
         }
     }
 })

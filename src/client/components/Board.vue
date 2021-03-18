@@ -1,19 +1,19 @@
 <template>
-    <div class="board-container">
+    <div v-if="game" class="board-container">
         <button class="flip-button" @click="flipped = !flipped">
             FLIP
         </button>
         <div class="y-coords">
-            <h2 v-for="r in boardHeight" :key="r" class="y-coord">
-                {{ flipped ? (boardHeight + 1 - r) : r }}
+            <h2 v-for="r in game.boardHeight" :key="r" class="y-coord">
+                {{ flipped ? (game.boardHeight + 1 - r) : r }}
             </h2>
         </div>
         <div ref="boardRef" class="board">
             <div class="tiles" :class="{flipped}">
-                <template v-for="(_, rank) in boardHeight">
+                <template v-for="(_, rank) in game.boardHeight">
                     <Tile
-                        v-for="(__, file) in boardWidth"
-                        :key="(rank * boardWidth) + file"
+                        v-for="(__, file) in game.boardWidth"
+                        :key="(rank * game.boardWidth) + file"
                         :dark="!!((rank + file + 1) % 2)"
                         :blank="false"
                         :isStartTile="moveStartTile != null && moveStartTile.rank == rank && moveStartTile.file == file"
@@ -25,11 +25,11 @@
             </div>
             <div class="pieces">
                 <PieceComponent
-                    v-for="piece in pieces"
+                    v-for="piece in game.pieces"
                     :key="piece.guid"
                     :piece="piece"
-                    :boardWidth="boardWidth"
-                    :boardHeight="boardHeight"
+                    :boardWidth="game.boardWidth"
+                    :boardHeight="game.boardHeight"
                     :flipped="flipped"
                     :size="tileSize"
                     class="piece"
@@ -40,8 +40,8 @@
             </div>
         </div>
         <div class="x-coords">
-            <h2 v-for="c in boardWidth" :key="c" class="x-coord">
-                {{ String.fromCharCode(96 + (flipped ? (boardWidth - c + 1) : c)) }}
+            <h2 v-for="c in game.boardWidth" :key="c" class="x-coord">
+                {{ String.fromCharCode(96 + (flipped ? (game.boardWidth - c + 1) : c)) }}
             </h2>
         </div>
     </div>
@@ -50,9 +50,7 @@
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, PropType, watch } from 'vue'
 
-import { Piece } from '../../game/Piece.class'
-import { Move } from '../../game/utils'
-import { BoardCoords } from '../../types/game'
+import { IBoardCoords, IGameContext } from '../../types/game'
 
 import PieceComponent from './Piece.vue'
 import Tile from './Tile.vue'
@@ -64,21 +62,9 @@ export default defineComponent({
     },
 
     props: {
-        boardWidth: {
-            default: 8,
-            type: Number
-        },
-        boardHeight: {
-            default: 8,
-            type: Number
-        },
-        pieces: {
-            default: () => [],
-            type: Array as PropType<Readonly<Piece[]>>
-        },
-        legalMoves: {
-            default: () => [],
-            type: Array as PropType<Readonly<Move[]>>
+        game: {
+            default: null,
+            type: Object as PropType<IGameContext>
         }
     },
 
@@ -94,10 +80,10 @@ export default defineComponent({
 
         const flipped = ref(false)
 
-        const moveStartTile = ref<BoardCoords | null>(null)
-        const moveTargetTile = ref<BoardCoords | null>(null)
+        const moveStartTile = ref<IBoardCoords | null>(null)
+        const moveTargetTile = ref<IBoardCoords | null>(null)
 
-        const piecePickedUp = (startingPosition: BoardCoords) => {
+        const piecePickedUp = (startingPosition: IBoardCoords) => {
             moveStartTile.value = startingPosition
             moveTargetTile.value = startingPosition
         }
@@ -108,20 +94,20 @@ export default defineComponent({
             const x = mouseX - boardRect.x, y = mouseY - boardRect.y
 
             if (x < 0 || y < 0) return
-            if (x > props.boardWidth * tileSize.value || y > props.boardHeight * tileSize.value) return
+            if (x > props.game.boardWidth * tileSize.value || y > props.game.boardHeight * tileSize.value) return
 
             const c = Math.floor(x / tileSize.value)
             const r = Math.floor(y / tileSize.value)
 
             
             moveTargetTile.value = {
-                file: flipped.value ? props.boardWidth - 1 - c : c,
-                rank: flipped.value ? r : props.boardHeight - 1 - r
+                file: flipped.value ? props.game.boardWidth - 1 - c : c,
+                rank: flipped.value ? r : props.game.boardHeight - 1 - r
             }
         }
 
         const pieceDropped = (finished: boolean) => {
-            if (finished) ctx.emit('movePiece', moveStartTile.value, moveTargetTile.value)
+            if (finished && moveStartTile.value && moveTargetTile.value) props.game.tryMovePiece(moveStartTile.value, moveTargetTile.value)
             moveStartTile.value = null
             moveTargetTile.value = null
         }
@@ -133,10 +119,10 @@ export default defineComponent({
         })
 
         const possibleMoves = computed(() => {
-            const result: boolean[][] = new Array(props.boardHeight)
-            if (moveStartTile.value != null && props.legalMoves != undefined) {
-                for (let i = 0; i < props.legalMoves.length; i++) {
-                    const move = props.legalMoves[i]
+            const result: boolean[][] = new Array(props.game.boardHeight)
+            if (moveStartTile.value != null && props.game.legalMoves != undefined) {
+                for (let i = 0; i < props.game.legalMoves.length; i++) {
+                    const move = props.game.legalMoves[i]
                     if (move.startSquare.file != moveStartTile.value.file || move.startSquare.rank != moveStartTile.value.rank) continue
 
                     if (!result[move.targetSquare.rank]) result[move.targetSquare.rank] = []
@@ -179,7 +165,7 @@ export default defineComponent({
 .y-coords {
     float: left;
     width: 25px;
-    height: calc(v-bind(boardHeight) * v-bind(tileSizeText));
+    height: calc(v-bind('game.boardHeight') * v-bind(tileSizeText));
     display: flex;
     flex-direction: column-reverse;
     justify-content: space-between;
@@ -193,7 +179,7 @@ export default defineComponent({
 }
 
 .x-coords {
-    width: calc(v-bind(boardWidth) * v-bind(tileSizeText));
+    width: calc(v-bind('game.boardWidth') * v-bind(tileSizeText));
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -213,8 +199,8 @@ export default defineComponent({
 
     display: inline-block;
 
-    width: calc(v-bind(boardWidth) * v-bind(tileSizeText));
-    height: calc(v-bind(boardHeight) * v-bind(tileSizeText));
+    width: calc(v-bind('game.boardWidth') * v-bind(tileSizeText));
+    height: calc(v-bind('game.boardHeight') * v-bind(tileSizeText));
     margin: 0;
 
     .tiles {
