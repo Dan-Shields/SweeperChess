@@ -6,7 +6,9 @@
             dark,
             blank,
             hovering: isEndTile,
-            startTile: isStartTile
+            startTile: isStartTile,
+            attacked,
+            pinned
         }"
     >
         <div v-show="possibleMoveTile" class="possible-move"></div>
@@ -35,6 +37,14 @@ export default defineComponent({
             type: Boolean,
         },
         possibleMoveTile: {
+            default: false,
+            type: Boolean
+        },
+        attacked: {
+            default: false,
+            type: Boolean
+        },
+        pinned: {
             default: false,
             type: Boolean
         },
@@ -79,6 +89,28 @@ export default defineComponent({
 
     &.startTile {
         $mix-color: yellow;
+        $mix-factor: 60%;
+        
+        background-color: mix($light-color, $mix-color, $mix-factor);
+
+        &.dark {
+            background-color: mix($dark-color, $mix-color, $mix-factor);
+        }
+    }
+
+    &.attacked {
+        $mix-color: red;
+        $mix-factor: 60%;
+        
+        background-color: mix($light-color, $mix-color, $mix-factor);
+
+        &.dark {
+            background-color: mix($dark-color, $mix-color, $mix-factor);
+        }
+    }
+
+    &.pinned {
+        $mix-color: blue;
         $mix-factor: 60%;
         
         background-color: mix($light-color, $mix-color, $mix-factor);

@@ -19,6 +19,8 @@
                         :isStartTile="moveStartTile != null && moveStartTile.rank == rank && moveStartTile.file == file"
                         :isEndTile="moveTargetTile != null && moveTargetTile.rank == rank && moveTargetTile.file == file"
                         :possibleMoveTile="possibleMoves !== undefined && possibleMoves[rank] && possibleMoves[rank][file]"
+                        :attacked="showDebug && !!game.opponentAttackedSquares.find(square => square.rank == rank && square.file == file)"
+                        :pinned="showDebug && !!game.opponentPins.find(pin => pin.find(square => square.rank == rank && square.file == file))"
                         class="tile"
                     />
                 </template>
@@ -135,6 +137,8 @@ export default defineComponent({
     
         const tileSizeText = computed(() => `${tileSize.value}px`)
 
+        const showDebug = ref(true)
+
         return {
             boardRef,
             piecePickedUp,
@@ -145,7 +149,8 @@ export default defineComponent({
             moveStartTile,
             moveTargetTile,
             possibleMoves,
-            flipped
+            flipped,
+            showDebug
         }
     }
 })

@@ -7,7 +7,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, readonly, reactive } from 'vue'
+import { defineComponent, reactive } from 'vue'
 
 import { Game } from '../game/Game.class'
 
