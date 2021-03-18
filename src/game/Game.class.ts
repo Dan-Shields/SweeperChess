@@ -278,19 +278,21 @@ export class Game implements IGameContext {
                     if (pieceOnTargetSquare.type == PieceType.King) {
                         pins.push([...crossedSquares, startSquare])
                         break
+                    } else if (pieceOnTargetSquare.type != PieceType.None) {
+                        break
                     }
                 } else {
                     if (this.doesMoveAllowKingTake(startSquare, targetSquare, piece.type)) continue
 
                     const isTake = pieceOnTargetSquare.color == Game.invertColor(color)
 
-                    checkingPin = isTake
-
                     if (isTake && pieceOnTargetSquare.type == PieceType.King) {
                         isKingAttack = true
                     }
-
+                    
                     moves.push(new Move(startSquare, targetSquare, isTake ? targetSquare : null, null, consequence))
+                    
+                    checkingPin = isTake
                 }
             }
 
@@ -448,17 +450,14 @@ export class Game implements IGameContext {
     }
 
     /**
-     * 
      * @returns Whether or not the given move would allow the king to be taken next move
      */
     private doesMoveAllowKingTake(startSquare: IBoardCoords, targetSquare: IBoardCoords, movedPieceType: PieceType): boolean {
-        let kingOnSafeSquare = this.opponentKingAttacks.length === 0
-        let allAttacksBlocked = false
-        let allPinsRemain = true
+        let kingSafe
 
         if (movedPieceType == PieceType.King) {
             // Was the square king moved to safe?
-            kingOnSafeSquare = !this.isSquareAttacked(targetSquare)
+            kingSafe = !this.isSquareAttacked(targetSquare)
         } else {
             let remainingAttacks = this.opponentKingAttacks.length
             for (let i = 0; i < this.opponentKingAttacks.length; i++) {
@@ -469,22 +468,23 @@ export class Game implements IGameContext {
             }
 
             // All attacks blocked
-            allAttacksBlocked = remainingAttacks == 0
+            kingSafe = remainingAttacks === 0
 
-            // The following accounts for multiple pins on the king going through one piece, but I'm not sure if that's ever possible
-
-            // Get all pin lines this piece is in
-            const pins = this.opponentPins.filter(pin => pin.find(square => Coords.Equal(square, startSquare)))
-
-            pins.forEach(pin => {
-                if (!pin.find(square => Coords.Equal(square, targetSquare))) {
-                    // move breaks pin
-                    allPinsRemain = false
+            this.opponentPins.forEach(pin => {
+                if (pin.find(square => Coords.Equal(square, startSquare))) {
+                    // Start square is in a pin
+                    
+                    if (!pin.find(square => Coords.Equal(square, targetSquare))) {
+                        // Target square is not in the pin
+                        
+                        kingSafe = false
+                    }
+                    
                 }
             })
-        }        
+        }
 
-        return !(kingOnSafeSquare || (allAttacksBlocked && allPinsRemain))
+        return !kingSafe
     }
 
     private coordsToIndex(coords: IBoardCoords): number {
