@@ -1,0 +1,7 @@
+{
+	"ext": "js,json",
+	"watch": [
+		"build",
+		"node_modules"
+	]
+}
