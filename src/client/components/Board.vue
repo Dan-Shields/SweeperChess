@@ -1,5 +1,8 @@
 <template>
     <div class="board-container">
+        <button class="flip-button" @click="flipped = !flipped">
+            FLIP
+        </button>
         <div class="y-coords">
             <h2 v-for="r in boardHeight" :key="r" class="y-coord">
                 {{ flipped ? (boardHeight + 1 - r) : r }}
@@ -13,17 +16,17 @@
                         :key="(rank * boardWidth) + file"
                         :dark="!!((rank + file + 1) % 2)"
                         :blank="false"
-                        :isStartTile="false"
+                        :isStartTile="moveStartTile != null && moveStartTile.rank == rank && moveStartTile.file == file"
                         :isEndTile="moveTargetTile != null && moveTargetTile.rank == rank && moveTargetTile.file == file"
                         :possibleMoveTile="possibleMoves !== undefined && possibleMoves[rank] && possibleMoves[rank][file]"
                         class="tile"
                     />
                 </template>
             </div>
-            <div class="piece">
+            <div class="pieces">
                 <PieceComponent
                     v-for="piece in pieces"
-                    :key="piece.index"
+                    :key="piece.guid"
                     :piece="piece"
                     :boardWidth="boardWidth"
                     :boardHeight="boardHeight"
@@ -45,9 +48,11 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, computed, onMounted, PropType } from 'vue'
+import { defineComponent, ref, computed, onMounted, PropType, watch } from 'vue'
 
-import { Piece, Move } from '../game'
+import { Piece } from '../../game/Piece.class'
+import { Move } from '../../game/utils'
+import { BoardCoords } from '../../types/game'
 
 import PieceComponent from './Piece.vue'
 import Tile from './Tile.vue'
@@ -59,10 +64,6 @@ export default defineComponent({
     },
 
     props: {
-        flipped: {
-            default: false,
-            type: Boolean
-        },
         boardWidth: {
             default: 8,
             type: Number
@@ -73,11 +74,11 @@ export default defineComponent({
         },
         pieces: {
             default: () => [],
-            type: Array as PropType<Piece[]>
+            type: Array as PropType<Readonly<Piece[]>>
         },
         legalMoves: {
             default: () => [],
-            type: Array as PropType<CoordsMove[]>
+            type: Array as PropType<Readonly<Move[]>>
         }
     },
 
@@ -89,7 +90,9 @@ export default defineComponent({
         const boardRef = ref<HTMLElement | null>(null)
         let boardRect: {x:number, y:number} | null = null
 
-        const tileSize = ref(120)
+        const tileSize = ref(135)
+
+        const flipped = ref(false)
 
         const moveStartTile = ref<BoardCoords | null>(null)
         const moveTargetTile = ref<BoardCoords | null>(null)
@@ -112,8 +115,8 @@ export default defineComponent({
 
             
             moveTargetTile.value = {
-                file: props.flipped ? props.boardWidth - 1 - c : c,
-                rank: props.flipped ? r : props.boardHeight - 1 - r
+                file: flipped.value ? props.boardWidth - 1 - c : c,
+                rank: flipped.value ? r : props.boardHeight - 1 - r
             }
         }
 
@@ -156,6 +159,7 @@ export default defineComponent({
             moveStartTile,
             moveTargetTile,
             possibleMoves,
+            flipped
         }
     }
 })
@@ -163,6 +167,14 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
+
+.board-container {
+    position: relative;
+}
+
+.flip-button {
+    display: block;
+}
 
 .y-coords {
     float: left;

@@ -1,11 +1,7 @@
 <template>
     <h1>SweeperChess</h1>
 
-    <button @click="flipped = !flipped">
-        FLIP
-    </button>
     <Board
-        :flipped="flipped"
         :boardLayout="boardLayout"
         :boardWidth="boardWidth"
         :boardHeight="boardHeight"
@@ -16,9 +12,11 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, reactive, ref } from 'vue'
+import { defineComponent, ref, readonly } from 'vue'
 
-import { Game, PieceColor, PieceType, Piece, Move } from './game'
+import { Game } from '../game/Game.class'
+import { Move } from '../game/utils'
+import { BoardCoords } from '../types/game'
 
 import Board from './components/Board.vue'
 
@@ -29,52 +27,25 @@ export default defineComponent({
         Board
     },
     setup () {
-
-        const flipped = ref(false)
-
         const boardHeight = ref(8)
         const boardWidth = ref(8)
 
-        const game = reactive<Game>(new Game(boardHeight.value, boardWidth.value))
+        const game = new Game(boardHeight.value, boardWidth.value)
 
         game.loadFEN(startingFEN)
 
-        const pieces = computed(() => {
-            const result: Piece[] = []
-            game.board
-                .forEach((piece, index) => {
-                    if (piece.type == PieceType.None || piece.color == PieceColor.None) return
-                    piece.index = index
-                    piece.coords = game.indexToCoords(index)
-                    result.push(piece)
-                })
-
-            return result
-        })
-
-        const movePiece = (startCoords: BoardCoords, targetCoords: BoardCoords) => {
-            const move = new Move(game.coordsToIndex(startCoords), game.coordsToIndex(targetCoords))
-            game.tryMovePiece(move)
+        const movePiece = (startSquare: BoardCoords, targetSquare: BoardCoords) => {
+            game.tryMovePiece(startSquare, targetSquare)
         }
 
-        const legalMoves = computed(() => {
-            return game.legalMoves.map(move => {
-                return {
-                    startSquare: game.indexToCoords(move.startSquare), 
-                    targetSquare: game.indexToCoords(move.targetSquare),
-                }
-            })
-        })
-
         return {
-            flipped,
-            pieces,
+            pieces: readonly(game.pieces),
             movePiece,
             game,
-            boardLayout: game.boardLayout,
+            boardLayout: readonly(game.boardLayout),
             boardHeight,
             boardWidth,
-            legalMoves,
+            legalMoves: readonly(game.legalMoves),
         }
     }
 })

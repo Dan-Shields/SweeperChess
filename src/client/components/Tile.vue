@@ -6,9 +6,10 @@
             dark,
             blank,
             hovering: isEndTile,
-            possibleMoveTile
+            startTile: isStartTile
         }"
     >
+        <div v-show="possibleMoveTile" class="possible-move"></div>
     </div>
 </template>
 
@@ -47,39 +48,56 @@ export default defineComponent({
 <style lang="scss" scoped>
 
 .tile {
-  $light-color: rgb(250, 237, 194);
-  $dark-color: rgb(117, 71, 28);
-  
-  background-color: $light-color;
-  border-color: rgba(233, 233, 233, 0.555);
-  border-style: solid;
-  border-width: 0;
+    $light-color: rgb(218, 221, 202);
+    $dark-color: rgb(58, 124, 63);
+    
+    background-color: $light-color;
+    border-color: rgba(233, 233, 233, 0.555);
+    border-style: solid;
+    border-width: 0;
 
-  box-sizing: border-box;
+    box-sizing: border-box;
 
-  margin: 0;
-  padding: 0;
+    margin: 0;
+    padding: 0;
 
-  display: inline-block;
+    display: inline-block;
 
-  &.hovering {
-    border-width: 6px;
-  }
+    position: relative;
 
-  &.dark {
-    background-color: $dark-color;
-  }
-
-  &.blank {
-    opacity: 0;
-  }
-
-  &.possibleMoveTile {
-    background-color: mix(red, $light-color, 50%);
+    &.hovering {
+        border-width: 6px;
+    }
 
     &.dark {
-      background-color: mix(red, $dark-color, 50%);
+        background-color: $dark-color;
     }
-  }
+
+    &.blank {
+        opacity: 0;
+    }
+
+    &.startTile {
+        $mix-color: yellow;
+        $mix-factor: 60%;
+        
+        background-color: mix($light-color, $mix-color, $mix-factor);
+
+        &.dark {
+            background-color: mix($dark-color, $mix-color, $mix-factor);
+        }
+    }
+}
+
+.possible-move {
+    width: 30%;
+    height: 30%;
+
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.384);
+    border-radius: 50%;
 }
 </style>

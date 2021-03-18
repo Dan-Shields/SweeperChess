@@ -1,5 +1,4 @@
 dependencies:
-  clone: registry.npmjs.org/clone/2.1.2
   compression: registry.npmjs.org/compression/1.7.4
   convict: registry.npmjs.org/convict/6.0.1
   cross-env: registry.npmjs.org/cross-env/7.0.3
@@ -16,11 +15,13 @@ devDependencies:
   '@types/node': registry.npmjs.org/@types/node/14.14.34
   '@types/socket.io': registry.npmjs.org/@types/socket.io/2.1.13
   '@types/socket.io-client': registry.npmjs.org/@types/socket.io-client/1.4.36
+  '@types/uuid': registry.npmjs.org/@types/uuid/8.3.0
   '@typescript-eslint/eslint-plugin': registry.npmjs.org/@typescript-eslint/eslint-plugin/4.17.0_1761b76df9b5dd3adf5d03ef124e1b23
   '@typescript-eslint/parser': registry.npmjs.org/@typescript-eslint/parser/4.17.0_eslint@7.22.0+typescript@4.2.3
   '@vitejs/plugin-vue': registry.npmjs.org/@vitejs/plugin-vue/1.1.5_@vue+compiler-sfc@3.0.7
   '@vue/compiler-sfc': registry.npmjs.org/@vue/compiler-sfc/3.0.7_vue@3.0.7
   '@vue/eslint-config-typescript': registry.npmjs.org/@vue/eslint-config-typescript/7.0.0_6ce2a4a58d41b54d14e76ae47496fbbf
+  clone: registry.npmjs.org/clone/2.1.2
   eslint: registry.npmjs.org/eslint/7.22.0
   eslint-plugin-vue: registry.npmjs.org/eslint-plugin-vue/7.7.0_eslint@7.22.0
   nodemon: registry.npmjs.org/nodemon/2.0.7
@@ -28,6 +29,7 @@ devDependencies:
   sass: registry.npmjs.org/sass/1.32.8
   socket.io-client: registry.npmjs.org/socket.io-client/4.0.0
   typescript: registry.npmjs.org/typescript/4.2.3
+  uuid: registry.npmjs.org/uuid/8.3.2
   vue: registry.npmjs.org/vue/3.0.7
 lockfileVersion: 5.2
 packages:
@@ -349,6 +351,14 @@ packages:
       registry: https://registry.npmjs.com/
       tarball: https://registry.npmjs.org/@types/socket.io/-/socket.io-2.1.13.tgz
     version: 2.1.13
+  registry.npmjs.org/@types/uuid/8.3.0:
+    dev: true
+    name: '@types/uuid'
+    resolution:
+      integrity: sha512-eQ9qFW/fhfGJF8WKHGEHZEyVWfZxrT+6CLIJGBcZPfxUh/+BnEj+UCGYMlr9qZuX/2AltsvwrGqp0LhEW8D0zQ==
+      registry: https://registry.npmjs.com/
+      tarball: https://registry.npmjs.org/@types/uuid/-/uuid-8.3.0.tgz
+    version: 8.3.0
   registry.npmjs.org/@typescript-eslint/eslint-plugin/4.17.0_1761b76df9b5dd3adf5d03ef124e1b23:
     dependencies:
       '@typescript-eslint/experimental-utils': registry.npmjs.org/@typescript-eslint/experimental-utils/4.17.0_eslint@7.22.0+typescript@4.2.3
@@ -1110,7 +1120,7 @@ packages:
       tarball: https://registry.npmjs.org/clone-response/-/clone-response-1.0.2.tgz
     version: 1.0.2
   registry.npmjs.org/clone/2.1.2:
-    dev: false
+    dev: true
     engines:
       node: '>=0.8'
     name: clone
@@ -4892,6 +4902,15 @@ packages:
       registry: https://registry.npmjs.com/
       tarball: https://registry.npmjs.org/utils-merge/-/utils-merge-1.0.1.tgz
     version: 1.0.1
+  registry.npmjs.org/uuid/8.3.2:
+    dev: true
+    hasBin: true
+    name: uuid
+    resolution:
+      integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==
+      registry: https://registry.npmjs.com/
+      tarball: https://registry.npmjs.org/uuid/-/uuid-8.3.2.tgz
+    version: 8.3.2
   registry.npmjs.org/v8-compile-cache/2.3.0:
     dev: true
     name: v8-compile-cache
@@ -5124,6 +5143,7 @@ specifiers:
   '@types/node': ^14.14.34
   '@types/socket.io': ^2.1.13
   '@types/socket.io-client': ^1.4.36
+  '@types/uuid': ^8.3.0
   '@typescript-eslint/eslint-plugin': ^4.17.0
   '@typescript-eslint/parser': ^4.17.0
   '@vitejs/plugin-vue': ^1.1.5
@@ -5144,5 +5164,6 @@ specifiers:
   socket.io: ^4.0.0
   socket.io-client: ^4.0.0
   typescript: ^4.2.3
+  uuid: ^8.3.2
   vite: ^2.0.5
-  vue: ^3.0.7
+  vue: 3.0.7

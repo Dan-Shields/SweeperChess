@@ -4,7 +4,8 @@
         class="piece"
         :style="`transform: translate(${xOffset}px, ${yOffset}px)`"
         :class="{
-            dragging
+            dragging,
+            inCheck: piece.inCheck
         }"
     >
         <img :src="pieceImage">
@@ -12,9 +13,10 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, computed, onMounted, PropType } from 'vue'
+import { defineComponent, ref, computed, onMounted, PropType } from 'vue'
 
-import { Piece, PieceColor, PieceType } from '../game'
+import { Piece } from '../../game/Piece.class'
+import { PieceColor, PieceType } from '../../game/enums'
 
 const images = import.meta.globEager('../assets/pieces/*.svg')
 
@@ -144,28 +146,28 @@ export default defineComponent({
             pieceRef.value.addEventListener('mouseleave', () => endDrag(false))
         })
 
-        const xPos = computed(() => {
+        const file = computed(() => {
             if (props.piece.coords === undefined) return 0
             if (!props.flipped) {
-                return props.boardWidth - props.piece.coords.file - 1
-            } else {
                 return props.piece.coords.file
+            } else {
+                return props.boardWidth - props.piece.coords.file - 1
             }
         })
 
-        const yPos = computed(() => {
+        const rank = computed(() => {
             if (props.piece.coords === undefined) return 0
             if (!props.flipped) {
-                return props.boardHeight - props.piece.coords.rank - 1
-            } else {
                 return props.piece.coords.rank
+            } else {
+                return props.boardHeight - props.piece.coords.rank - 1
             }
         })
 
         return {
             pieceImage,
-            xPos,
-            yPos,
+            file,
+            rank,
             xOffset,
             yOffset,
             pieceRef,
@@ -179,8 +181,8 @@ export default defineComponent({
 <style lang="scss" scoped>
 .piece {
   position: absolute;
-  top: calc((100% / v-bind(boardWidth)) * v-bind(yPos));
-  right: calc((100% / v-bind(boardHeight)) * v-bind(xPos));
+  bottom: calc((100% / v-bind(boardWidth)) * v-bind(rank));
+  left: calc((100% / v-bind(boardHeight)) * v-bind(file));
 
   user-select: none;
 
@@ -200,6 +202,10 @@ export default defineComponent({
   &.dragging {
     cursor: grabbing;
     z-index: 2;
+  }
+
+  &.inCheck {
+      background-color: rgba(255, 0, 0, 0.76);
   }
 }
 

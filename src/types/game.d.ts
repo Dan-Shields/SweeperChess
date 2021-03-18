@@ -1,27 +1,24 @@
+import {SlideDirection, PieceColor} from '../game/enums'
+import { Game } from '../game/Game.class'
+import { Piece } from '../game/Piece.class'
+
 interface BoardCoords {
     file: number;
     rank: number;
 }
 
 interface IMove {
-    startSquare: number;
-    targetSquare: number;
-}
-
-interface CoordsMove {
     startSquare: BoardCoords;
     targetSquare: BoardCoords;
+    targetPieceCoords: BoardCoords | null;
+    subMove: IMove | null;
 }
 
-interface IBoardPrecompData {
-    North: number;
-    South: number;
-    West: number;
-    East: number;
-    NorthEast: number;
-    SouthWest: number;
-    SouthEast: number;
-    NorthWest: number;
+interface IBoardPrecompData extends Record<SlideDirection, number> {}
+
+interface CastleState {
+    [PieceColor.Black]: SlideDirection[],
+    [PieceColor.White]: SlideDirection[]
 }
 
-type SlideDirection = 'NorthEast' | 'NorthWest' | 'SouthEast' | 'SouthWest' | 'North' | 'South' | 'East' | 'West'
+type MoveConsequence = (game: Game, movedPiece: Piece) => void
