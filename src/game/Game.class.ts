@@ -2,7 +2,7 @@ import { Piece } from './Piece.class'
 import { PieceColor, PieceType, SlideDirection } from './enums'
 
 import { Move, Coords } from './utils'
-import { IBoardCoords, ICastleState, IBoardPrecompData, IGameContext } from '../types/game'
+import { IBoardCoords, ICastleState, IBoardPrecompData, IGameContext, IMoveData } from '../types/game'
 
 export class Game implements IGameContext {
     // IGameContext Implementation:
@@ -16,9 +16,17 @@ export class Game implements IGameContext {
     // Private members:
     private board: Piece[][] = []
     private enPassantSquare: IBoardCoords | null = null
-    private opponentMoves: Move[] = []
-    private attackedSquares: IBoardCoords[] = []
-    private kingAttacks: IBoardCoords[][] = []
+    public opponentAttackedSquares: IBoardCoords[] = []
+
+    /**
+     * Array of attacks that target the friendly king.
+     * 
+     * Each element lists the squares on the path going from the king to the attacking piece, inclusive of the two pieces and in that direction.
+     */
+    private opponentKingAttacks: IBoardCoords[][] = []
+
+    public opponentPins: IBoardCoords[][] = []
+
     private numSquaresToEdge: IBoardPrecompData[][] = []
     private castleState: ICastleState = {
         [PieceColor.White]: [
@@ -112,9 +120,14 @@ export class Game implements IGameContext {
     private regen() {
         this.generateBoard()
 
-        this.opponentMoves = this.generateMoves(Game.invertColor(this.colorToMove))
-        this.checkCheck()
-        this.legalMoves = this.generateMoves(this.colorToMove)
+        const opponentMoveData = this.generateMoves(Game.invertColor(this.colorToMove))
+
+        this.opponentAttackedSquares = [...new Set(opponentMoveData.attackedSquares)]
+        this.opponentKingAttacks = opponentMoveData.kingAttacks
+        this.opponentPins = opponentMoveData.pins
+
+        const friendlyMoveData = this.generateMoves(this.colorToMove)
+        this.legalMoves = friendlyMoveData.legalMoves
     }
 
     private generateBoard() {
@@ -129,6 +142,9 @@ export class Game implements IGameContext {
         this.board = result
     }
 
+    /**
+     * At all squares on the board, generate the distance to the edges in every direction
+     */
     private precomputeMoveData() {
         this.numSquaresToEdge = []
 
@@ -163,8 +179,6 @@ export class Game implements IGameContext {
         
         this.enPassantSquare = null
 
-        console.log(move)
-
         // Take piece
         if (move.targetPieceCoords != null) {
             const targetPiece = this.board[move.targetPieceCoords.rank][move.targetPieceCoords.file]
@@ -182,38 +196,66 @@ export class Game implements IGameContext {
         if (move.consequence) move.consequence(this, piece)
     }
 
-    private generateMoves(color: PieceColor): Move[] {
-        // clear moves
-        const moves: Move[] = []
+    private generateMoves(color: PieceColor): IMoveData {
+        const legalMoves: Move[] = []
+        const attackedSquares: IBoardCoords[] = []
+        const kingAttacks: IBoardCoords[][] = []
+        const pins: IBoardCoords[][] = []
 
         this.pieces.forEach(piece => {
             if (piece.color == color) {
                 const startSquare = piece.coords
                 if (piece.isSlidingPiece()) {
-                    this.generateSlidingMoves(moves, color, startSquare, piece)
+                    this.generateSlidingMoves(legalMoves, color, startSquare, piece, kingAttacks, attackedSquares, pins)
                 } else if (piece.type == PieceType.Pawn) {
-                    this.generatePawnMoves(moves, color, startSquare, piece)
+                    this.generatePawnMoves(legalMoves, color, startSquare, piece, kingAttacks, attackedSquares)
                 } else if (piece.type == PieceType.Knight) {
-                    this.generateKnightMoves(moves, color, startSquare)
+                    this.generateKnightMoves(legalMoves, color, startSquare, kingAttacks, attackedSquares)
                 } else if (piece.type == PieceType.King) {
-                    this.generateSlidingMoves(moves, color, startSquare, piece)
-                    this.generateCastlingMoves(moves, color, startSquare)
+                    this.generateSlidingMoves(legalMoves, color, startSquare, piece, kingAttacks, attackedSquares, pins)
+                    this.generateCastlingMoves(legalMoves, color, startSquare)
                 }
             }
         })
 
-        return moves
+        return {
+            legalMoves,
+            attackedSquares,
+            kingAttacks,
+            pins
+        }
     }
     
-    private generateSlidingMoves(moves: Move[], color: PieceColor, startSquare: IBoardCoords, piece: Piece) {
+    private generateSlidingMoves(moves: Move[], color: PieceColor, startSquare: IBoardCoords, piece: Piece, kingAttacks: IBoardCoords[][], attackedSquares: IBoardCoords[], pins: IBoardCoords[][]) {
         const directions = piece.getSlidingDirections()
         const moveDistance = piece.getMoveDistanceRange(this.boardHeight)
+
+        let consequence: null | ((game: Game, piece: Piece) => void) = null
+
+        if (piece.type == PieceType.Rook) {
+            const castleSide = startSquare.file == 0 ? SlideDirection.West : SlideDirection.East
+            consequence = (game: Game) => {
+                if (game.colorToMove == PieceColor.None) return
+                const index = game.castleState[game.colorToMove].indexOf(castleSide)
+                if (index > -1) {
+                    // Remove castle ability on this side
+                    game.castleState[game.colorToMove].splice(index, 1)
+                }
+            }
+        } else if (piece.type == PieceType.King) {
+            consequence = (game: Game) => {
+                if (game.colorToMove == PieceColor.None) return
+                // Remove castle ability
+                game.castleState[game.colorToMove] = []
+            }
+        }
 
         directions.forEach(direction => {
             const maxMoveDistance = Math.min(moveDistance.max, this.numSquaresToEdge[startSquare.rank][startSquare.file][direction])
 
             const crossedSquares = []
             let isKingAttack = false
+            let checkingPin = false
 
             for (let n = moveDistance.min; n <= maxMoveDistance; n++) {
                 const delta = Coords.Scale(Piece.SlideDirections[direction], n)
@@ -223,47 +265,42 @@ export class Game implements IGameContext {
 
                 const pieceOnTargetSquare = this.board[targetSquare.rank][targetSquare.file]
 
+                if (!checkingPin) attackedSquares.push(targetSquare)
+
                 // Blocked by friendly piece
                 if (pieceOnTargetSquare.color == color) {
                     break
                 }
 
-                let consequence = null
-
-                if (piece.type == PieceType.Rook) {
-                    const castleSide = startSquare.file == 0 ? SlideDirection.West : SlideDirection.East
-                    consequence = (game: Game) => {
-                        if (game.colorToMove == PieceColor.None) return
-                        const index = game.castleState[game.colorToMove].indexOf(castleSide)
-                        if (index > -1) {
-                            // Remove castle ability on this side
-                            game.castleState[game.colorToMove].splice(index, 1)
-                        }
-                    }
-                }
-                
-                if (piece.type == PieceType.King) {
-                    isKingAttack = true
-                }
-
-                const isTake = pieceOnTargetSquare.color == Game.invertColor(color)
-                
-                moves.push(new Move(startSquare, targetSquare, isTake ? targetSquare : null, null, consequence))
                 crossedSquares.push(targetSquare)
 
-                // Can't move further after a take
-                if (isTake) {
-                    break
+                if (checkingPin) {
+                    if (pieceOnTargetSquare.type == PieceType.King) {
+                        pins.push([...crossedSquares, startSquare])
+                        break
+                    }
+                } else {
+                    if (this.doesMoveAllowKingTake(startSquare, targetSquare, piece.type)) continue
+
+                    const isTake = pieceOnTargetSquare.color == Game.invertColor(color)
+
+                    checkingPin = isTake
+
+                    if (isTake && pieceOnTargetSquare.type == PieceType.King) {
+                        isKingAttack = true
+                    }
+
+                    moves.push(new Move(startSquare, targetSquare, isTake ? targetSquare : null, null, consequence))
                 }
             }
 
-            if (isKingAttack && this.colorToMove == Game.invertColor(piece.color)) {
-                this.kingAttacks.push(crossedSquares)
+            if (isKingAttack) {
+                kingAttacks.push([...crossedSquares, startSquare])
             }
         })
     }
 
-    private generatePawnMoves(moves: Move[], color: PieceColor, startSquare: IBoardCoords, piece: Piece) {
+    private generatePawnMoves(moves: Move[], color: PieceColor, startSquare: IBoardCoords, piece: Piece, kingAttacks: IBoardCoords[][], attackedSquares: IBoardCoords[]) {
         const direction = color == PieceColor.White ? SlideDirection.North : SlideDirection.South
 
         const moveDistance = piece.getMoveDistanceRange(this.boardHeight)
@@ -280,6 +317,8 @@ export class Game implements IGameContext {
             if (pieceOnTargetSquare.type != PieceType.None) {
                 break
             }
+
+            if (this.doesMoveAllowKingTake(startSquare, targetSquare, piece.type)) continue
 
             let consequence = null
 
@@ -305,15 +344,27 @@ export class Game implements IGameContext {
 
             const pieceOnTargetSquare = this.board[targetSquare.rank][targetSquare.file]
 
+            if (this.doesMoveAllowKingTake(startSquare, targetSquare, piece.type)) return
+
             let consequence = null
+
+            // Promotion
+            // TODO: add underpromotion
             if (targetSquare.rank == this.boardHeight - 1 || targetSquare.rank == 0) {
                 consequence = (game: Game, movedPiece: Piece) => {
                     movedPiece.type = PieceType.Queen
                 }
             }
 
+            attackedSquares.push(targetSquare)
+
             if (pieceOnTargetSquare.color == Game.invertColor(color)) {
                 moves.push(new Move(startSquare, targetSquare, targetSquare, null, consequence))
+
+                if (pieceOnTargetSquare.type == PieceType.King) {
+                    kingAttacks.push([targetSquare, startSquare])
+                }
+
             } else if (this.enPassantSquare && Coords.Equal(this.enPassantSquare, targetSquare)) {
                 const targetPieceCoords = Coords.Add(Coords.Scale(Piece.SlideDirections[direction], -1), targetSquare,)
                 
@@ -322,18 +373,24 @@ export class Game implements IGameContext {
         })
     }
 
-    private generateKnightMoves(moves: Move[], color: PieceColor, startSquare: IBoardCoords) {
+    private generateKnightMoves(moves: Move[], color: PieceColor, startSquare: IBoardCoords, kingAttacks: IBoardCoords[][], attackedSquares: IBoardCoords[]) {
         Piece.KnightDirections.forEach(direction => {
             const targetSquare = Coords.Add(startSquare, direction)
 
             if (!this.doesTileExist(targetSquare)) return
 
+            if (this.doesMoveAllowKingTake(startSquare, targetSquare, PieceType.Knight)) return
+
             const pieceOnTargetSquare = this.board[targetSquare.rank][targetSquare.file]
 
-            if (!pieceOnTargetSquare) return
+            attackedSquares.push(targetSquare)
 
             if (pieceOnTargetSquare.color == Game.invertColor(color)) {
                 moves.push(new Move(startSquare, targetSquare, targetSquare))
+
+                if (pieceOnTargetSquare.type == PieceType.King) {
+                    kingAttacks.push([targetSquare, startSquare])
+                }
             } else if (pieceOnTargetSquare.color == PieceColor.None) {
                 moves.push(new Move(startSquare, targetSquare))
             }
@@ -350,7 +407,11 @@ export class Game implements IGameContext {
                 rank: startSquare.rank,
                 file: rookFile
             }
+
+            if (this.board[rookStartPosition.rank][rookStartPosition.file].type !== PieceType.Rook) return
+
             const rookEndPosition = Coords.Add(startSquare, Piece.SlideDirections[direction])
+
 
             const subMove = new Move(rookStartPosition, rookEndPosition)
 
@@ -365,7 +426,7 @@ export class Game implements IGameContext {
                 const pieceOnTargetSquare = this.board[targetSquare.rank][targetSquare.file]
                 
                 // Blocked by piece
-                if (pieceOnTargetSquare.type != PieceType.None) {
+                if (pieceOnTargetSquare.type != PieceType.None || this.isSquareAttacked(targetSquare)) {
                     return
                 }
             }
@@ -383,58 +444,47 @@ export class Game implements IGameContext {
     }
 
     private isSquareAttacked(testSquare: IBoardCoords): boolean {
-        return !!this.attackedSquares.find(square => Coords.Equal(testSquare, square))
+        return !!this.opponentAttackedSquares.find(square => Coords.Equal(testSquare, square))
     }
-    
-    private checkCheck() {
-        this.attackedSquares = [...new Set(this.opponentMoves.map(move => move.targetSquare))]
-        
-        const king = this.pieces.find(piece => piece.type == PieceType.King && piece.color == this.colorToMove)
-        
-        if (!king) return
-        
-        const kingAttackMoves = this.opponentMoves.filter(move => Coords.Equal(move.targetSquare, king.coords))
 
-        king.inCheck = kingAttackMoves.length != 0
+    /**
+     * 
+     * @returns Whether or not the given move would allow the king to be taken next move
+     */
+    private doesMoveAllowKingTake(startSquare: IBoardCoords, targetSquare: IBoardCoords, movedPieceType: PieceType): boolean {
+        let kingOnSafeSquare = this.opponentKingAttacks.length === 0
+        let allAttacksBlocked = false
+        let allPinsRemain = true
 
-        if (!king.inCheck) {
-            this.kingAttacks = []
-            return
-        }
-        
-        this.kingAttacks = kingAttackMoves.map(kingAttackMove => {
-            const path: IBoardCoords[] = []
+        if (movedPieceType == PieceType.King) {
+            // Was the square king moved to safe?
+            kingOnSafeSquare = !this.isSquareAttacked(targetSquare)
+        } else {
+            let remainingAttacks = this.opponentKingAttacks.length
+            for (let i = 0; i < this.opponentKingAttacks.length; i++) {
+                if (this.opponentKingAttacks[i].find(attackSquare => Coords.Equal(attackSquare, targetSquare))) {
+                    // Attack blocked
+                    remainingAttacks--
+                }
+            }
 
-            this.opponentMoves.forEach(opponentMove => {
-                if (Coords.Equal(opponentMove.startSquare, kingAttackMove.startSquare)) {
-                    path.push(opponentMove.targetSquare)
+            // All attacks blocked
+            allAttacksBlocked = remainingAttacks == 0
+
+            // The following accounts for multiple pins on the king going through one piece, but I'm not sure if that's ever possible
+
+            // Get all pin lines this piece is in
+            const pins = this.opponentPins.filter(pin => pin.find(square => Coords.Equal(square, startSquare)))
+
+            pins.forEach(pin => {
+                if (!pin.find(square => Coords.Equal(square, targetSquare))) {
+                    // move breaks pin
+                    allPinsRemain = false
                 }
             })
+        }        
 
-            return path
-        })
-
-        console.log(this.kingAttacks)
-    }
-
-    private doesMovePreventCheck(move: Move): boolean {
-        const kings = this.pieces.filter(piece => piece.type == PieceType.King && piece.color == this.colorToMove)
-
-        let allKingsOnSafeSquare = true
-
-        kings.forEach(king => {
-            if (king.coords == move.startSquare) {
-                if (this.isSquareAttacked(move.targetSquare)) {
-                    allKingsOnSafeSquare = false
-                }
-            } else if (king.inCheck) {
-                allKingsOnSafeSquare = false
-            }
-        })
-
-        if (!allKingsOnSafeSquare) return false
-
-        return true
+        return !(kingOnSafeSquare || (allAttacksBlocked && allPinsRemain))
     }
 
     private coordsToIndex(coords: IBoardCoords): number {

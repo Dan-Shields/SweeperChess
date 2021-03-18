@@ -24,8 +24,17 @@ interface IGameContext {
     boardHeight: number;
     boardLayout: number[][];
     legalMoves: IMove[];
+    opponentAttackedSquares: IBoardCoords[];
+    opponentPins: IBoardCoords[][];
     tryMovePiece(startSquare: IBoardCoords, targetSquare: IBoardCoords): boolean;
     loadFEN(fen: string): void;
+}
+
+interface IMoveData {
+    legalMoves: IMove[];
+    attackedSquares: IBoardCoords[];
+    kingAttacks: IBoardCoords[][];
+    pins: IBoardCoords[][];
 }
 
 interface IBoardPrecompData extends Record<SlideDirection, number> {}
