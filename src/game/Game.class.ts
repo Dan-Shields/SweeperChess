@@ -330,7 +330,11 @@ export class Game implements IGameContext {
 
             const pieceOnTargetSquare = this.board[targetSquare.rank][targetSquare.file]
 
-            if (pieceOnTargetSquare && pieceOnTargetSquare.color != color) {
+            if (!pieceOnTargetSquare) return
+
+            if (pieceOnTargetSquare.color == Game.invertColor(color)) {
+                moves.push(new Move(startSquare, targetSquare, targetSquare))
+            } else if (pieceOnTargetSquare.color == PieceColor.None) {
                 moves.push(new Move(startSquare, targetSquare))
             }
         })
