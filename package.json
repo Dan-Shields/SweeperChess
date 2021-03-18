@@ -6,10 +6,10 @@
   "scripts": {
     "build": "run-p build:*",
     "build:client": "vite build",
-    "build:server": "rimraf ./build/server && tsc --project ./src/server/tsconfig.json",
+    "build:server": "rimraf ./build/server && rimraf ./build/game && tsc --project ./src/tsconfig.json",
     "dev": "run-p dev:*",
     "dev:nodemon": "cross-env NODE_ENV=development nodemon",
-    "dev:watch": "tsc --project ./src/server/tsconfig.json -w",
+    "dev:watch": "tsc --project ./src/tsconfig.json -w",
     "start": "node build/server/index.js",
     "lint": "eslint **/*.js **/*.ts **/*.vue",
     "lint:fix": "eslint --fix **/*.js **/*.ts **/*.vue"
@@ -48,6 +48,7 @@
     "eslint-plugin-vue": "^7.7.0",
     "nodemon": "^2.0.7",
     "npm-run-all": "^4.1.5",
+    "rimraf": "^3.0.2",
     "sass": "^1.32.8",
     "socket.io-client": "^4.0.0",
     "typescript": "^4.2.3",

@@ -26,6 +26,7 @@ devDependencies:
   eslint-plugin-vue: registry.npmjs.org/eslint-plugin-vue/7.7.0_eslint@7.22.0
   nodemon: registry.npmjs.org/nodemon/2.0.7
   npm-run-all: registry.npmjs.org/npm-run-all/4.1.5
+  rimraf: registry.npmjs.org/rimraf/3.0.2
   sass: registry.npmjs.org/sass/1.32.8
   socket.io-client: registry.npmjs.org/socket.io-client/4.0.0
   typescript: registry.npmjs.org/typescript/4.2.3
@@ -5160,6 +5161,7 @@ specifiers:
   fs-extra: ^9.1.0
   nodemon: ^2.0.7
   npm-run-all: ^4.1.5
+  rimraf: ^3.0.2
   sass: ^1.32.8
   socket.io: ^4.0.0
   socket.io-client: ^4.0.0

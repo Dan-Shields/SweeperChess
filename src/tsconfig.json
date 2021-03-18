@@ -1,5 +1,5 @@
 {
-	"extends": "../../tsconfig.json",
+	"extends": "../tsconfig.json",
 	"compilerOptions": {
 		"target": "esnext",
 		"module": "esnext",
@@ -11,9 +11,9 @@
 		"esModuleInterop": true,
 		"allowSyntheticDefaultImports": true,
 		"lib": ["ESNext"],
-		"outDir": "../../build/server"
+		"outDir": "../build"
 	},
 	"exclude": [
-		"../client"
+		"./client"
 	]
 }
