@@ -265,7 +265,7 @@ export class Game implements IGameContext {
 
                 const pieceOnTargetSquare = this.board[targetSquare.rank][targetSquare.file]
 
-                if (!checkingPin) attackedSquares.push(targetSquare)
+                if (!checkingPin || isKingAttack) attackedSquares.push(targetSquare)
 
                 // Blocked by friendly piece
                 if (pieceOnTargetSquare.color == color) {
