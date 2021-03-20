@@ -141,7 +141,16 @@ export default defineComponent({
                 ctx.emit('dropped', finished)
             }
 
-            pieceRef.value.addEventListener('mouseup', () => endDrag(true))
+            pieceRef.value.addEventListener('contextmenu', e => {
+                endDrag(false)
+                e.preventDefault()
+            })
+
+            pieceRef.value.addEventListener('mouseup', e => {
+                endDrag(e.button === 0)
+                e.preventDefault()
+            })
+
             pieceRef.value.addEventListener('mouseleave', () => endDrag(false))
         })
 

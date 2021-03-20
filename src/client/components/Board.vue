@@ -126,6 +126,10 @@ export default defineComponent({
             if (!boardRef.value) return
 
             boardRect = boardRef.value.getBoundingClientRect()
+
+            boardRef.value.addEventListener('contextmenu', e => {
+                e.preventDefault()
+            })
         })
 
         const possibleMoves = computed(() => {
