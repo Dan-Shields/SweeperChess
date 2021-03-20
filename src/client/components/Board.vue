@@ -56,6 +56,11 @@ import { IBoardCoords, IGameRenderContext, IMove } from '../../types/game'
 import PieceComponent from './Piece.vue'
 import Tile from './Tile.vue'
 
+import moveSound from '../assets/move.wav'
+import { PieceType } from '../../game/enums'
+
+const moveAudio = new Audio(moveSound)
+
 export default defineComponent({
     components: {
         PieceComponent,
@@ -108,7 +113,11 @@ export default defineComponent({
         }
 
         const pieceDropped = (finished: boolean) => {
-            if (finished && moveStartTile.value && moveTargetTile.value) props.game.tryMovePiece(moveStartTile.value, moveTargetTile.value)
+            if (finished && moveStartTile.value && moveTargetTile.value) {
+                if (props.game.tryMovePiece(moveStartTile.value, moveTargetTile.value, null)) {
+                    moveAudio.play()
+                }
+            }
             moveStartTile.value = null
             moveTargetTile.value = null
         }
