@@ -2,7 +2,6 @@
   "name": "sweeper-chess",
   "version": "1.0.0",
   "description": "",
-  "type": "module",
   "scripts": {
     "build": "run-p build:*",
     "build:client": "vite build",
@@ -11,6 +10,7 @@
     "dev:nodemon": "cross-env NODE_ENV=development nodemon",
     "dev:watch": "tsc --project ./src/tsconfig.json -w",
     "start": "node build/server/index.js",
+    "generator": "ts-node --project ./generator/tsconfig.json ./generator/generator.ts",
     "lint": "eslint **/*.js **/*.ts **/*.vue",
     "lint:fix": "eslint --fix **/*.js **/*.ts **/*.vue"
   },
@@ -51,6 +51,7 @@
     "rimraf": "^3.0.2",
     "sass": "^1.32.8",
     "socket.io-client": "^4.0.0",
+    "ts-node": "^9.1.1",
     "typescript": "^4.2.3",
     "uuid": "^8.3.2",
     "vue": "3.0.7"

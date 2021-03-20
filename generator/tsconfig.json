@@ -6,14 +6,12 @@
 		"moduleResolution": "node",
 		"strict": true,
 		"sourceMap": true,
-		"noEmit": false,
+		"noEmit": true,
 		"resolveJsonModule": true,
 		"esModuleInterop": true,
-		"allowSyntheticDefaultImports": true,
-		"lib": ["ESNext"],
-		"outDir": "../build"
+		"allowSyntheticDefaultImports": true
 	},
-	"exclude": [
-		"./client"
+	"include": [
+		"./"
 	]
 }
