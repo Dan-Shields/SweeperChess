@@ -4,23 +4,22 @@
             FLIP
         </button>
         <div class="y-coords">
-            <h2 v-for="r in game.boardHeight" :key="r" class="y-coord">
-                {{ flipped ? (game.boardHeight + 1 - r) : r }}
+            <h2 v-for="r in game.setup.height" :key="r" class="y-coord">
+                {{ flipped ? (game.setup.height + 1 - r) : r }}
             </h2>
         </div>
         <div ref="boardRef" class="board">
             <div class="tiles" :class="{flipped}">
-                <template v-for="(_, rank) in game.boardHeight">
+                <template v-for="(_, rank) in game.setup.height">
                     <Tile
-                        v-for="(__, file) in game.boardWidth"
-                        :key="(rank * game.boardWidth) + file"
+                        v-for="(__, file) in game.setup.width"
+                        :key="(rank * game.setup.width) + file"
                         :dark="!!((rank + file + 1) % 2)"
                         :blank="false"
-                        :isStartTile="moveStartTile != null && moveStartTile.rank == rank && moveStartTile.file == file"
-                        :isEndTile="moveTargetTile != null && moveTargetTile.rank == rank && moveTargetTile.file == file"
-                        :possibleMoveTile="possibleMoves !== undefined && possibleMoves[rank] && possibleMoves[rank][file]"
-                        :attacked="showDebug && !!game.opponentAttackedSquares.find(square => square.rank == rank && square.file == file)"
-                        :pinned="showDebug && !!game.opponentPins.find(pin => pin.find(square => square.rank == rank && square.file == file))"
+                        :isStart="moveStartTile != null && moveStartTile.rank == rank && moveStartTile.file == file"
+                        :isTarget="moveTargetTile != null && moveTargetTile.rank == rank && moveTargetTile.file == file"
+                        :possibleMove="possibleMoves !== undefined && possibleMoves[rank] && possibleMoves[rank][file] === false"
+                        :possibleTake="possibleMoves !== undefined && possibleMoves[rank] && possibleMoves[rank][file] === true"
                         class="tile"
                     />
                 </template>
@@ -30,8 +29,8 @@
                     v-for="piece in game.pieces"
                     :key="piece.guid"
                     :piece="piece"
-                    :boardWidth="game.boardWidth"
-                    :boardHeight="game.boardHeight"
+                    :boardWidth="game.setup.width"
+                    :boardHeight="game.setup.height"
                     :flipped="flipped"
                     :size="tileSize"
                     class="piece"
@@ -42,8 +41,8 @@
             </div>
         </div>
         <div class="x-coords">
-            <h2 v-for="c in game.boardWidth" :key="c" class="x-coord">
-                {{ String.fromCharCode(96 + (flipped ? (game.boardWidth - c + 1) : c)) }}
+            <h2 v-for="c in game.setup.width" :key="c" class="x-coord">
+                {{ String.fromCharCode(96 + (flipped ? (game.setup.width - c + 1) : c)) }}
             </h2>
         </div>
     </div>
@@ -52,7 +51,7 @@
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, PropType, watch } from 'vue'
 
-import { IBoardCoords, IGameContext } from '../../types/game'
+import { IBoardCoords, IGameRenderContext, IMove } from '../../types/game'
 
 import PieceComponent from './Piece.vue'
 import Tile from './Tile.vue'
@@ -66,7 +65,7 @@ export default defineComponent({
     props: {
         game: {
             default: null,
-            type: Object as PropType<IGameContext>
+            type: Object as PropType<IGameRenderContext>
         }
     },
 
@@ -74,7 +73,7 @@ export default defineComponent({
         'movePiece'
     ],
 
-    setup (props, ctx) {
+    setup (props) {
         const boardRef = ref<HTMLElement | null>(null)
         let boardRect: {x:number, y:number} | null = null
 
@@ -96,15 +95,15 @@ export default defineComponent({
             const x = mouseX - boardRect.x, y = mouseY - boardRect.y
 
             if (x < 0 || y < 0) return
-            if (x > props.game.boardWidth * tileSize.value || y > props.game.boardHeight * tileSize.value) return
+            if (x > props.game.setup.width * tileSize.value || y > props.game.setup.height * tileSize.value) return
 
             const c = Math.floor(x / tileSize.value)
             const r = Math.floor(y / tileSize.value)
 
             
             moveTargetTile.value = {
-                file: flipped.value ? props.game.boardWidth - 1 - c : c,
-                rank: flipped.value ? r : props.game.boardHeight - 1 - r
+                file: flipped.value ? props.game.setup.width - 1 - c : c,
+                rank: flipped.value ? r : props.game.setup.height - 1 - r
             }
         }
 
@@ -121,7 +120,7 @@ export default defineComponent({
         })
 
         const possibleMoves = computed(() => {
-            const result: boolean[][] = new Array(props.game.boardHeight)
+            const result: (boolean | null)[][] = new Array(props.game.setup.height)
             if (moveStartTile.value != null && props.game.legalMoves != undefined) {
                 for (let i = 0; i < props.game.legalMoves.length; i++) {
                     const move = props.game.legalMoves[i]
@@ -129,7 +128,7 @@ export default defineComponent({
 
                     if (!result[move.targetSquare.rank]) result[move.targetSquare.rank] = []
 
-                    result[move.targetSquare.rank][move.targetSquare.file] = true
+                    result[move.targetSquare.rank][move.targetSquare.file] = move.targetPieceCoords !== null
                 }
             }
             return result
@@ -138,6 +137,9 @@ export default defineComponent({
         const tileSizeText = computed(() => `${tileSize.value}px`)
 
         const showDebug = ref(true)
+
+        const boardPixelWidth = computed(() => `${tileSize.value * props.game.setup.width}px`)
+        const boardPixelHeight = computed(() => `${tileSize.value * props.game.setup.height}px`)
 
         return {
             boardRef,
@@ -150,7 +152,9 @@ export default defineComponent({
             moveTargetTile,
             possibleMoves,
             flipped,
-            showDebug
+            showDebug,
+            boardPixelWidth,
+            boardPixelHeight
         }
     }
 })
@@ -170,7 +174,7 @@ export default defineComponent({
 .y-coords {
     float: left;
     width: 25px;
-    height: calc(v-bind('game.boardHeight') * v-bind(tileSizeText));
+    height: v-bind(boardPixelHeight);
     display: flex;
     flex-direction: column-reverse;
     justify-content: space-between;
@@ -184,7 +188,7 @@ export default defineComponent({
 }
 
 .x-coords {
-    width: calc(v-bind('game.boardWidth') * v-bind(tileSizeText));
+    width: v-bind(boardPixelWidth);
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -204,8 +208,8 @@ export default defineComponent({
 
     display: inline-block;
 
-    width: calc(v-bind('game.boardWidth') * v-bind(tileSizeText));
-    height: calc(v-bind('game.boardHeight') * v-bind(tileSizeText));
+    width: v-bind(boardPixelWidth);
+    height: v-bind(boardPixelHeight);
     margin: 0;
 
     .tiles {

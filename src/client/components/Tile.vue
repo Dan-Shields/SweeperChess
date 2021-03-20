@@ -5,13 +5,12 @@
         :class="{
             dark,
             blank,
-            hovering: isEndTile,
-            startTile: isStartTile,
-            attacked,
-            pinned
+            'start': isStart,
+            'target': isTarget
         }"
     >
-        <div v-show="possibleMoveTile" class="possible-move"></div>
+        <div v-show="possibleMove" class="possible-move"></div>
+        <div v-show="possibleTake" class="possible-take"></div>
     </div>
 </template>
 
@@ -28,26 +27,22 @@ export default defineComponent({
             default: false,
             type: Boolean
         },
-        isStartTile: {
+        isStart: {
             default: false,
             type: Boolean,
         },
-        isEndTile: {
+        isTarget: {
             default: false,
             type: Boolean,
         },
-        possibleMoveTile: {
+        possibleMove: {
             default: false,
             type: Boolean
         },
-        attacked: {
+        possibleTake: {
             default: false,
             type: Boolean
-        },
-        pinned: {
-            default: false,
-            type: Boolean
-        },
+        }
     },
 
     setup() {
@@ -58,8 +53,8 @@ export default defineComponent({
 <style lang="scss" scoped>
 
 .tile {
-    $light-color: rgb(218, 221, 202);
-    $dark-color: rgb(58, 124, 63);
+    $light-color: rgb(225, 228, 192);
+    $dark-color: rgb(58, 124, 58);
     
     background-color: $light-color;
     border-color: rgba(233, 233, 233, 0.555);
@@ -131,5 +126,22 @@ export default defineComponent({
     transform: translate(-50%, -50%);
     background-color: rgba(0, 0, 0, 0.384);
     border-radius: 50%;
+}
+
+.possible-take {
+    width: 95%;
+    height: 95%;
+
+    box-sizing: border-box;
+
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-color: rgba(0, 0, 0, 0.384);
+    border-style: solid;
+    border-width: 15px;
+    border-radius: 50%;
+    z-index: 5;
 }
 </style>

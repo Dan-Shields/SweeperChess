@@ -1,13 +1,36 @@
-import {SlideDirection, PieceColor} from '../game/enums'
-import { Game } from '../game/Game.class'
+import {SlideDirection, PieceColor, PieceType} from '../game/enums'
 import { Piece } from '../game/Piece.class'
+import { Move } from '../game/utils'
 
 interface IBoardCoords {
     file: number;
     rank: number;
 }
+    
+interface ICastleState {
+    [PieceColor.Black]: SlideDirection[];
+    [PieceColor.White]: SlideDirection[];
+}
 
-type MoveConsequence = (game: Game, movedPiece: Piece) => void
+interface IGameState {
+    board: Piece[][];
+    colorToMove: PieceColor;
+    enPassantSquare: IBoardCoords | null;
+    castleState: ICastleState;
+    halfMoves: number;
+    fullMoves: number;
+}
+
+interface IBoardPrecompData extends Record<SlideDirection, number> {}
+
+interface IBoardSetup {
+    width: number;
+    height: number;
+    layout: number[][];
+    numSquaresToEdge: IBoardPrecompData[][];
+}
+
+type MoveConsequence = (afterMoveState: IGameState, movedPiece: Piece) => void;
 
 interface IMove {
     startSquare: IBoardCoords;
@@ -15,32 +38,15 @@ interface IMove {
     targetPieceCoords: IBoardCoords | null;
     subMove: IMove | null;
     consequence: MoveConsequence | null;
+    promotionType: PieceType | null;
 }
 
-interface IGameContext {
+interface IGameRenderContext {
     pieces: Piece[];
-    colorToMove: PieceColor;
-    boardWidth: number;
-    boardHeight: number;
-    boardLayout: number[][];
+    setup: IBoardSetup;
     legalMoves: IMove[];
-    opponentAttackedSquares: IBoardCoords[];
-    opponentPins: IBoardCoords[][];
-    tryMovePiece(startSquare: IBoardCoords, targetSquare: IBoardCoords): boolean;
+    tryMovePiece(startSquare: IBoardCoords, targetSquare: IBoardCoords, promotionType: PieceType | null): boolean;
     loadFEN(fen: string): void;
 }
 
-interface IMoveData {
-    legalMoves: IMove[];
-    attackedSquares: IBoardCoords[];
-    kingAttacks: IBoardCoords[][];
-    pins: IBoardCoords[][];
-}
-
-interface IBoardPrecompData extends Record<SlideDirection, number> {}
-
-interface ICastleState {
-    [PieceColor.Black]: SlideDirection[],
-    [PieceColor.White]: SlideDirection[]
-}
-
+type MoveGeneratorFunc = (piece: Piece, state: IGameState, boardSetup: IBoardSetup) => Move[];

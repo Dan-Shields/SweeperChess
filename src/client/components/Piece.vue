@@ -4,8 +4,7 @@
         class="piece"
         :style="`transform: translate(${xOffset}px, ${yOffset}px)`"
         :class="{
-            dragging,
-            inCheck: piece.inCheck
+            dragging
         }"
     >
         <img :src="pieceImage">
@@ -180,33 +179,33 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .piece {
-  position: absolute;
-  bottom: calc((100% / v-bind(boardWidth)) * v-bind(rank));
-  left: calc((100% / v-bind(boardHeight)) * v-bind(file));
+    position: absolute;
+    bottom: calc((100% / v-bind(boardWidth)) * v-bind(rank));
+    left: calc((100% / v-bind(boardHeight)) * v-bind(file));
 
-  user-select: none;
+    user-select: none;
 
-  will-change: transform;
+    will-change: transform;
 
-  cursor: grab;
-
-  img {
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
     cursor: grab;
-  }
 
-  user-select: none;
+    img {
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        cursor: grab;
+    }
 
-  &.dragging {
-    cursor: grabbing;
-    z-index: 2;
-  }
+    user-select: none;
 
-  &.inCheck {
-      background-color: rgba(255, 0, 0, 0.76);
-  }
+    &.dragging {
+        cursor: grabbing;
+        z-index: 10;
+    }
+
+    &.inCheck {
+        background-color: rgba(255, 0, 0, 0.76);
+    }
 }
 
 </style>

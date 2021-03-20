@@ -13,7 +13,7 @@ import { Game } from '../game/Game.class'
 
 import Board from './components/Board.vue'
 
-const startingFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'
+const startingFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
 export default defineComponent({
     components: {

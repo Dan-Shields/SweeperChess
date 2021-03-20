@@ -2,6 +2,7 @@
 	"ext": "js,json",
 	"watch": [
 		"build",
-		"node_modules"
+		"node_modules",
+		"src/client"
 	]
 }
