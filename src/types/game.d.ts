@@ -27,7 +27,6 @@ interface IBoardSetup {
     width: number;
     height: number;
     layout: number[][];
-    numSquaresToEdge: IBoardPrecompData[][];
 }
 
 type MoveConsequence = (afterMoveState: IGameState, movedPiece: Piece) => void;
@@ -46,7 +45,6 @@ interface IGameRenderContext {
     setup: IBoardSetup;
     legalMoves: IMove[];
     tryMovePiece(startSquare: IBoardCoords, targetSquare: IBoardCoords, promotionType: PieceType | null): boolean;
-    loadFEN(fen: string): void;
 }
 
 type MoveGeneratorFunc = (piece: Piece, state: IGameState, boardSetup: IBoardSetup) => Move[];

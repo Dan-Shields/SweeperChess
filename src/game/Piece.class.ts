@@ -162,13 +162,13 @@ export class Piece implements IPiece {
         }
 
         directions.forEach(direction => {
-            const maxMoveDistance = Math.min(moveDistance.max, boardSetup.numSquaresToEdge[piece.coords.rank][piece.coords.file][direction])
+            const maxMoveDistance = moveDistance.max
 
             for (let n = moveDistance.min; n <= maxMoveDistance; n++) {
                 const delta = Coords.Scale(Piece.SlideDirections[direction], n)
                 const targetSquare = Coords.Add(piece.coords, delta)
 
-                if (!Game.doesTileExist(boardSetup, targetSquare)) return
+                if (!State.doesTileExist(boardSetup, targetSquare)) return
 
                 const pieceOnTargetSquare = state.board[targetSquare.rank][targetSquare.file]
 
@@ -177,7 +177,7 @@ export class Piece implements IPiece {
                     break
                 }
 
-                const isTake = pieceOnTargetSquare.color == Game.invertColor(piece.color)
+                const isTake = pieceOnTargetSquare.color == Piece.invertColor(piece.color)
 
                 const move = new Move(piece.coords, targetSquare, isTake ? targetSquare : null, null, consequence)
 
@@ -204,7 +204,7 @@ export class Piece implements IPiece {
             const delta = Coords.Scale(Piece.SlideDirections[direction], n)
             const targetSquare = Coords.Add(piece.coords, delta)
             
-            if (!Game.doesTileExist(boardSetup, targetSquare)) break
+            if (!State.doesTileExist(boardSetup, targetSquare)) break
             
             const pieceOnTargetSquare = state.board[targetSquare.rank][targetSquare.file]
             
@@ -235,13 +235,13 @@ export class Piece implements IPiece {
         takingDirections.forEach(takeDirection => {
             const targetSquare = Coords.Add(piece.coords, Piece.SlideDirections[takeDirection])
 
-            if (!Game.doesTileExist(boardSetup, targetSquare)) return
+            if (!State.doesTileExist(boardSetup, targetSquare)) return
 
             const pieceOnTargetSquare = state.board[targetSquare.rank][targetSquare.file]
 
             let consequence: MoveConsequence | null = null
 
-            if (pieceOnTargetSquare.color == Game.invertColor(piece.color)) {
+            if (pieceOnTargetSquare.color == Piece.invertColor(piece.color)) {
                 // Promotion
                 if (targetSquare.rank == boardSetup.height - 1 || targetSquare.rank == 0) {
                     Piece.PromotionTypes.forEach(promotionType => {
@@ -266,12 +266,12 @@ export class Piece implements IPiece {
         Piece.KnightDirections.forEach(direction => {
             const targetSquare = Coords.Add(piece.coords, direction)
 
-            if (!Game.doesTileExist(boardSetup, targetSquare)) return
+            if (!State.doesTileExist(boardSetup, targetSquare)) return
 
             const pieceOnTargetSquare = state.board[targetSquare.rank][targetSquare.file]
 
             if (pieceOnTargetSquare.color != piece.color) {
-                const targetPieceCoords = pieceOnTargetSquare.color == Game.invertColor(piece.color) ? targetSquare : null
+                const targetPieceCoords = pieceOnTargetSquare.color == Piece.invertColor(piece.color) ? targetSquare : null
                 moves.push(new Move(piece.coords, targetSquare, targetPieceCoords))
             }
         })
@@ -285,13 +285,13 @@ export class Piece implements IPiece {
         if (piece.color == PieceColor.None) return moves
 
         const nextMoveState = state
-        nextMoveState.colorToMove = Game.invertColor(nextMoveState.colorToMove)
+        nextMoveState.colorToMove = Piece.invertColor(nextMoveState.colorToMove)
         if (State.canKingBeTaken(nextMoveState, boardSetup)) {
             // king currently in check, no castling allowed
-            nextMoveState.colorToMove = Game.invertColor(nextMoveState.colorToMove)
+            nextMoveState.colorToMove = Piece.invertColor(nextMoveState.colorToMove)
             return moves
         }
-        nextMoveState.colorToMove = Game.invertColor(nextMoveState.colorToMove)
+        nextMoveState.colorToMove = Piece.invertColor(nextMoveState.colorToMove)
 
         state.castleState[piece.color].forEach(direction => {
             const rookFile = direction == SlideDirection.East ? 7 : 0
@@ -315,11 +315,13 @@ export class Piece implements IPiece {
 
             let kingMove
 
-            for (let n = 1; n <= boardSetup.numSquaresToEdge[piece.coords.rank][piece.coords.file][direction] - 1; n++) {
+            const checkDistance = Math.abs(rookFile - piece.coords.file) - 1
+
+            for (let n = 1; n <= checkDistance; n++) {
                 const delta = Coords.Scale(Piece.SlideDirections[direction], n)
                 const targetSquare = Coords.Add(piece.coords, delta)
 
-                if (!Game.doesTileExist(boardSetup, targetSquare)) return
+                if (!State.doesTileExist(boardSetup, targetSquare)) return
 
                 const pieceOnTargetSquare = state.board[targetSquare.rank][targetSquare.file]
                 
@@ -349,6 +351,11 @@ export class Piece implements IPiece {
         })
 
         return moves
+    }
+
+    public toFENChar(): string {
+        const char = Piece.pieceTypeToChar(this.type)
+        return this.color == PieceColor.White ? char.toUpperCase() : char
     }
 
     static charToPieceType(char: string): PieceType {
@@ -387,5 +394,9 @@ export class Piece implements IPiece {
             default:
                 return ''
         }
+    }
+
+    public static invertColor(color: PieceColor): PieceColor {
+        return color == PieceColor.White ? PieceColor.Black : PieceColor.White
     }
 }
