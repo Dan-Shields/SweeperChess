@@ -70,7 +70,7 @@ export default defineComponent({
 
     position: relative;
 
-    &.hovering {
+    &.target {
         border-width: 6px;
     }
 
@@ -82,7 +82,7 @@ export default defineComponent({
         opacity: 0;
     }
 
-    &.startTile {
+    &.start {
         $mix-color: yellow;
         $mix-factor: 60%;
         

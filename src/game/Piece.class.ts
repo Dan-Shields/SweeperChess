@@ -1,13 +1,13 @@
 import { v4 as uuidv4 } from 'uuid'
 import { reactive } from 'vue'
-import { IBoardCoords, IBoardSetup, IGameState, MoveConsequence, MoveGeneratorFunc } from '../types/game'
+import { IBoardCoords, IBoardSetup, IGameState, IPiece, MoveConsequence, MoveGeneratorFunc } from '../types/game'
 
 import { PieceType, PieceColor, SlideDirection } from './enums'
 import { Game } from './Game.class'
 import { State } from './State.class'
 import { Coords, Move } from './utils'
 
-export class Piece {
+export class Piece implements IPiece {
     public type: PieceType
     public color: PieceColor
 

@@ -6,6 +6,11 @@
         :class="{
             dragging
         }"
+        @mousedown="mousedownHandler"
+        @mouseup="mouseupHandler"
+        @mouseleave="mouseleaveHandler"
+        @mousemove="mousemoveHandler"
+        @contextmenu="contextmenuHandler"
     >
         <img :src="pieceImage">
     </div>
@@ -16,6 +21,7 @@ import { defineComponent, ref, computed, onMounted, PropType } from 'vue'
 
 import { Piece } from '../../game/Piece.class'
 import { PieceColor, PieceType } from '../../game/enums'
+import { IPiece } from '../../types/game'
 
 const images = import.meta.globEager('../assets/pieces/*.svg')
 
@@ -32,10 +38,13 @@ export default defineComponent({
                 return {
                     type: PieceType.None,
                     color: PieceColor.None,
-                    position: -1
+                    coords: {
+                        rank: -1,
+                        file: -1
+                    }
                 }
             },
-            type: Object as PropType<Piece>
+            type: Object as PropType<IPiece>
         },
         boardWidth: {
             default: 8,
@@ -52,6 +61,10 @@ export default defineComponent({
         size: {
             default: 120,
             type: Number
+        },
+        active: {
+            default: true,
+            type: Boolean
         }
     },
 
@@ -75,84 +88,79 @@ export default defineComponent({
         const xOffset = ref(0)
         const yOffset = ref(0)
 
-        const boardPixelWidth = computed(() => props.boardWidth * props.size)
-        const boardPixelHeight = computed(() => props.boardHeight * props.size)
+        let initialX = 0
+        let initialY = 0
 
-        onMounted(() => {
+        const mousedownHandler = (e: MouseEvent) => {
+            if (!props.active) return
+            if (e.button !== 0) return
+
             if (pieceRef.value == null) return
 
-            let initialX = 0
-            let initialY = 0
-
-            pieceRef.value.addEventListener('mousedown', e => {
-                if (e.button !== 0) return
-
-                if (pieceRef.value == null) return
-
-                if (e.type === "touchstart") {
-                    //initialX = e.touches[0].clientX
-                    //initialY = e.touches[0].clientY
-                } else {
-                    initialX = e.clientX
-                    initialY = e.clientY
-                }
-
-                const offset = calculateMouseDistanceFromElement(pieceRef.value, initialX, initialY)
-                initialX -= offset[0]
-                initialY -= offset[1]
-        
-                if (e.target === pieceRef.value) {
-                    dragging.value = true
-
-                    ctx.emit('pickedUp', props.piece.coords)
-          
-                    xOffset.value = e.clientX - initialX
-                    yOffset.value = e.clientY - initialY
-                }
-            })
-
-            pieceRef.value.addEventListener('mousemove', e => {
-                if (dragging.value) {      
-                    e.preventDefault()
-
-                    let x = 0, y = 0
-        
-                    if (e.type === "touchmove") {
-                        //x = e.touches[0].clientX
-                        //y = e.touches[0].clientY
-                    } else {
-                        x = e.clientX
-                        y = e.clientY
-                    }
-
-                    xOffset.value = x - initialX
-                    yOffset.value = y - initialY
-
-                    ctx.emit('dragged', [x, y])
-                }
-            })
-
-            const endDrag = (finished: boolean) => {
-                xOffset.value = 0
-                yOffset.value = 0
-
-                dragging.value = false
-
-                ctx.emit('dropped', finished)
+            if (e.type === "touchstart") {
+                //initialX = e.touches[0].clientX
+                //initialY = e.touches[0].clientY
+            } else {
+                initialX = e.clientX
+                initialY = e.clientY
             }
 
-            pieceRef.value.addEventListener('contextmenu', e => {
-                endDrag(false)
-                e.preventDefault()
-            })
+            const offset = calculateMouseDistanceFromElement(pieceRef.value, initialX, initialY)
+            initialX -= offset[0]
+            initialY -= offset[1]
 
-            pieceRef.value.addEventListener('mouseup', e => {
-                endDrag(e.button === 0)
-                e.preventDefault()
-            })
+            if (e.target === pieceRef.value) {
+                dragging.value = true
 
-            pieceRef.value.addEventListener('mouseleave', () => endDrag(false))
-        })
+                ctx.emit('pickedUp', props.piece.coords)
+
+                xOffset.value = e.clientX - initialX
+                yOffset.value = e.clientY - initialY
+            }
+        }
+
+        const mousemoveHandler = (e: MouseEvent) => {
+            if (!props.active) return
+            if (dragging.value) {      
+                e.preventDefault()
+
+                let x = 0, y = 0
+    
+                if (e.type === "touchmove") {
+                    //x = e.touches[0].clientX
+                    //y = e.touches[0].clientY
+                } else {
+                    x = e.clientX
+                    y = e.clientY
+                }
+
+                xOffset.value = x - initialX
+                yOffset.value = y - initialY
+
+                ctx.emit('dragged', [x, y])
+            }
+        }
+
+        const endDrag = (finished: boolean) => {
+            if (!props.active || !dragging.value) return
+            xOffset.value = 0
+            yOffset.value = 0
+
+            dragging.value = false
+
+            ctx.emit('dropped', finished)
+        }
+
+        const contextmenuHandler = (e: MouseEvent) => {
+            endDrag(false)
+            e.preventDefault()
+        }
+
+        const mouseupHandler = (e: MouseEvent) => {
+            endDrag(e.button === 0)
+        }
+
+        const mouseleaveHandler = () => endDrag(false)
 
         const file = computed(() => {
             if (props.piece.coords === undefined) return 0
@@ -179,7 +187,12 @@ export default defineComponent({
             xOffset,
             yOffset,
             pieceRef,
-            dragging
+            dragging,
+            mousedownHandler,
+            mousemoveHandler,
+            mouseupHandler,
+            mouseleaveHandler,
+            contextmenuHandler
         }
     }
 })
@@ -189,8 +202,8 @@ export default defineComponent({
 <style lang="scss" scoped>
 .piece {
     position: absolute;
-    bottom: calc((100% / v-bind(boardWidth)) * v-bind(rank));
-    left: calc((100% / v-bind(boardHeight)) * v-bind(file));
+    bottom: calc((100% / v-bind(boardHeight)) * v-bind(rank));
+    left: calc((100% / v-bind(boardWidth)) * v-bind(file));
 
     user-select: none;
 
@@ -202,7 +215,7 @@ export default defineComponent({
         width: 100%;
         height: 100%;
         pointer-events: none;
-        cursor: grab;
+        //cursor: grab;
     }
 
     user-select: none;
@@ -210,10 +223,6 @@ export default defineComponent({
     &.dragging {
         cursor: grabbing;
         z-index: 10;
-    }
-
-    &.inCheck {
-        background-color: rgba(255, 0, 0, 0.76);
     }
 }
 

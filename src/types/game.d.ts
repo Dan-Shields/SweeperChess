@@ -50,3 +50,9 @@ interface IGameRenderContext {
 }
 
 type MoveGeneratorFunc = (piece: Piece, state: IGameState, boardSetup: IBoardSetup) => Move[];
+
+interface IPiece {
+    type: PieceType;
+    color: PieceColor;
+    coords: IBoardCoords
+}
