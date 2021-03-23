@@ -12,7 +12,7 @@ const isDev = process.env.NODE_ENV === 'development'
 
 export default function () {
 
-    let assetManifest: Object
+    let assetManifest: any
 
     if (!isDev) {
         const assetManifestPath = path.join(process.env.CG_ROOT || '.', 'build/client/manifest.json')
@@ -39,8 +39,12 @@ export default function () {
 
     app.get('/', async (req, res) => {
 
-        const renderContext = {
+        const renderContext: { [key: string]: any} = {
             isDev
+        }
+
+        if (!isDev && assetManifest) {
+            renderContext['assetManifest'] = assetManifest
         }
 
         return res.render('index', renderContext)

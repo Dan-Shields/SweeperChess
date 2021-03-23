@@ -1,8 +1,5 @@
 <template>
     <div v-if="game" class="board-container">
-        <button class="flip-button" @click="flipped = !flipped">
-            FLIP
-        </button>
         <div class="y-coords">
             <h2 v-for="r in game.setup.height" :key="r" class="y-coord">
                 {{ flipped ? (game.setup.height + 1 - r) : r }}
@@ -49,6 +46,11 @@
                 :flipped="flipped"
                 @promotion-type-selected="promotionTypeSelected"
             />
+        </div>
+        <div class="controls">
+            <button class="flip-button" @click="flipped = !flipped">
+                FLIP
+            </button>
         </div>
         <div class="x-coords">
             <h2 v-for="c in game.setup.width" :key="c" class="x-coord">
@@ -128,6 +130,8 @@ export default defineComponent({
         })
 
         const piecePickedUp = (startingPosition: IBoardCoords) => {
+            boardRect = boardRef.value?.getBoundingClientRect() || null
+
             moveStartTile.value = startingPosition
             moveTargetTile.value = startingPosition
 
@@ -179,7 +183,11 @@ export default defineComponent({
                         promotionTile.value = moveTargetTile.value
                         showPromotionMenu.value = true
                         return
-                    } else if (props.game.tryMovePiece(moveStartTile.value, moveTargetTile.value, null)) {
+                    }
+
+                    const moveProto = props.game.legalMoves.find(move => Coords.Equal(move.startSquare, moveStartTile.value as IBoardCoords) && Coords.Equal(move.targetSquare, moveTargetTile.value as IBoardCoords))
+
+                    if (moveProto && props.game.tryMovePiece(moveProto)) {
                         moveAudio.play()
                     }
                 }
@@ -193,8 +201,14 @@ export default defineComponent({
         }
 
         const promotionTypeSelected = (type: PieceType) => {
-            console.log(type, moveStartTile.value, moveTargetTile.value)
-            if (type !== PieceType.None && moveStartTile.value && moveTargetTile.value && props.game.tryMovePiece(moveStartTile.value, moveTargetTile.value, type)) {
+            if (type !== PieceType.None && moveStartTile.value && moveTargetTile.value) {
+
+                const moveProto = props.game.legalMoves.find(move => Coords.Equal(move.startSquare, moveStartTile.value as IBoardCoords) && Coords.Equal(move.targetSquare, moveTargetTile.value as IBoardCoords) && move.promotionType === type)
+
+                if (moveProto && props.game.tryMovePiece(moveProto)) {
+                    moveAudio.play()
+                }
+
                 // TODO: play promotion audio instead
                 moveAudio.play()
             }
@@ -233,6 +247,7 @@ export default defineComponent({
 
 .board-container {
     position: relative;
+    margin-right: 50px;    
 }
 
 .flip-button {
@@ -279,7 +294,7 @@ export default defineComponent({
     width: v-bind(boardPixelWidth);
     height: v-bind(boardPixelHeight);
     margin: 0;
-
+    
     .tiles {
         width: 100%;
         height: 100%;
@@ -297,6 +312,16 @@ export default defineComponent({
             flex-wrap: wrap;
         }
     }
+}
+
+.controls {
+    float: right;
+    width: 50px;
+    height: v-bind(boardPixelHeight);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 10px;
 }
 
 .piece {

@@ -1,10 +1,9 @@
 import { Piece } from './Piece.class'
-import { PieceColor, PieceType, SlideDirection } from './enums'
+import { PieceColor, SlideDirection } from './enums'
 
 import { Move, Coords } from './utils'
-import { IBoardCoords, IGameRenderContext, IGameState, IBoardSetup } from '../types/game'
+import { IGameRenderContext, IGameState, IBoardSetup, IMoveProto, IMoveInfo } from '../types/game'
 import { State } from './State.class'
-
 
 /**
  * Can be used in the client or server to run a full game
@@ -13,8 +12,9 @@ export class Game implements IGameRenderContext {
     public pieces: Piece[]
     public setup: IBoardSetup
     public legalMoves: Move[]
+    public previousMoves: IMoveInfo[] = []
     
-    public state: IGameState
+    protected state: IGameState
 
     constructor(boardWidth: number, boardHeight: number, boardLayout: number[][] = []) {
         this.state = {
@@ -46,12 +46,12 @@ export class Game implements IGameRenderContext {
         this.pieces = []
     }
 
-    public tryMovePiece (startSquare: IBoardCoords, targetSquare: IBoardCoords, promotionType: PieceType | null): boolean {
-        if (startSquare == targetSquare) return false
+    public tryMovePiece (moveProto: IMoveProto): boolean {
+        if (moveProto.startSquare == moveProto.targetSquare) return false
 
         const requestedMove = this.legalMoves.find(move => {
-            const promotionCorrect = move.promotionType == promotionType
-            const squaresCorrect = Coords.Equal(move.startSquare, startSquare) && Coords.Equal(move.targetSquare, targetSquare)
+            const promotionCorrect = move.promotionType == moveProto.promotionType
+            const squaresCorrect = Coords.Equal(move.startSquare, moveProto.startSquare) && Coords.Equal(move.targetSquare, moveProto.targetSquare)
             return promotionCorrect && squaresCorrect
         })
         
@@ -83,4 +83,6 @@ export class Game implements IGameRenderContext {
         this.pieces = State.generatePieces(this.state, this.setup)
         this.legalMoves = State.generateMoves(this.state, false, this.setup)
     }
+
+    public static startPositionFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 }

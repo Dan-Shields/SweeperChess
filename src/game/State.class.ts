@@ -6,7 +6,7 @@ import { Piece } from "./Piece.class"
 import { Coords, Move } from "./utils"
 
 export class State {
-    public static executeMove(state: IGameState, move: Move, isSubMove: boolean = false): IGameState | null {
+    public static executeMove(state: IGameState, move: Move, isSubMove = false): IGameState | null {
         let newState = clone(state)
 
         const movedPiece = newState.board[move.startSquare.rank][move.startSquare.file]

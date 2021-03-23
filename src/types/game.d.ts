@@ -6,7 +6,7 @@ interface IBoardCoords {
     file: number;
     rank: number;
 }
-    
+
 interface ICastleState {
     [PieceColor.Black]: SlideDirection[];
     [PieceColor.White]: SlideDirection[];
@@ -29,28 +29,40 @@ interface IBoardSetup {
     layout: number[][];
 }
 
-type MoveConsequence = (afterMoveState: IGameState, movedPiece: Piece) => void;
+type MoveConsequence = (afterMoveState: IGameState, movedPiece: Piece) => void
 
-interface IMove {
+interface IMoveProto {
     startSquare: IBoardCoords;
     targetSquare: IBoardCoords;
-    targetPieceCoords: IBoardCoords | null;
-    subMove: IMove | null;
-    consequence: MoveConsequence | null;
+    targetPieceCoords: IBoardCoords | null
     promotionType: PieceType | null;
 }
 
-interface IGameRenderContext {
-    pieces: Piece[];
-    setup: IBoardSetup;
-    legalMoves: IMove[];
-    tryMovePiece(startSquare: IBoardCoords, targetSquare: IBoardCoords, promotionType: PieceType | null): boolean;
+interface IMove extends IMoveProto {
+    subMove: IMove | null;
+    consequence: MoveConsequence | null;
 }
 
-type MoveGeneratorFunc = (piece: Piece, state: IGameState, boardSetup: IBoardSetup) => Move[];
+interface IMoveInfo {
+    algebraicString: string;
+    timeTaken: number | null;
+    color: PieceColor;
+}
 
 interface IPiece {
     type: PieceType;
     color: PieceColor;
-    coords: IBoardCoords
+    coords: IBoardCoords;
+    guid: string;
 }
+
+interface IGameRenderContext {
+    pieces: IPiece[];
+    setup: IBoardSetup;
+    legalMoves: IMoveProto[];
+    previousMoves: IMoveInfo[];
+    tryMovePiece(moveProto: IMoveProto): boolean;
+}
+
+type MoveGeneratorFunc = (piece: Piece, state: IGameState, boardSetup: IBoardSetup) => Move[]
+

@@ -1,9 +1,8 @@
 import { v4 as uuidv4 } from 'uuid'
 import { reactive } from 'vue'
-import { IBoardCoords, IBoardSetup, IGameState, IPiece, MoveConsequence, MoveGeneratorFunc } from '../types/game'
 
+import { IBoardCoords, IBoardSetup, IGameState, IPiece, MoveConsequence, MoveGeneratorFunc } from '../types/game'
 import { PieceType, PieceColor, SlideDirection } from './enums'
-import { Game } from './Game.class'
 import { State } from './State.class'
 import { Coords, Move } from './utils'
 
@@ -15,12 +14,12 @@ export class Piece implements IPiece {
 
     public guid: string
 
-    constructor(type = PieceType.None, color = PieceColor.None, coords = {file: -1, rank: -1}) {
+    constructor(type = PieceType.None, color = PieceColor.None, coords = {file: -1, rank: -1}, guid?: string) {
         this.type = type
         this.color = color
         this.coords = reactive(coords)
 
-        this.guid = uuidv4()
+        this.guid = guid || uuidv4()
     }
 
     static SlideDirections: Record<SlideDirection, IBoardCoords> = {
@@ -239,8 +238,6 @@ export class Piece implements IPiece {
 
             const pieceOnTargetSquare = state.board[targetSquare.rank][targetSquare.file]
 
-            let consequence: MoveConsequence | null = null
-
             if (pieceOnTargetSquare.color == Piece.invertColor(piece.color)) {
                 // Promotion
                 if (targetSquare.rank == boardSetup.height - 1 || targetSquare.rank == 0) {
@@ -248,12 +245,12 @@ export class Piece implements IPiece {
                         moves.push(new Move(piece.coords, targetSquare, targetSquare, null, null, promotionType))
                     })
                 } else {
-                    moves.push(new Move(piece.coords, targetSquare, targetSquare, null, consequence))
+                    moves.push(new Move(piece.coords, targetSquare, targetSquare))
                 }
             } else if (state.enPassantSquare && Coords.Equal(state.enPassantSquare, targetSquare)) {
                 const targetPieceCoords = Coords.Add(Coords.Scale(Piece.SlideDirections[direction], -1), targetSquare,)
                 
-                moves.push(new Move(piece.coords, targetSquare, targetPieceCoords, null, consequence))
+                moves.push(new Move(piece.coords, targetSquare, targetPieceCoords))
             }
         })
 

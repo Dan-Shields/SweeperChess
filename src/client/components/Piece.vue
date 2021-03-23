@@ -41,7 +41,8 @@ export default defineComponent({
                     coords: {
                         rank: -1,
                         file: -1
-                    }
+                    },
+                    guid: null
                 }
             },
             type: Object as PropType<IPiece>
