@@ -9,6 +9,7 @@
 		"esModuleInterop": true,
 		"noEmit": true,
 		"allowSyntheticDefaultImports": true,
+		"strictPropertyInitialization": false,
 		"lib": ["ESNext"],
 		"typeRoots": ["./node_modules/@types", "./src/types"]
 	},
